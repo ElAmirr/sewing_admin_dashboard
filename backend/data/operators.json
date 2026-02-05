@@ -1,0 +1,8 @@
+[
+  { "operator_id": 1, "name": "Samir", "badge": "100100100" },
+  { "operator_id": 2, "name": "Khaled", "badge": "100100101" },
+  { "operator_id": 3, "name": "Youssef", "badge": "100100102" },
+  { "operator_id": 4, "name": "Hassen", "badge": "100100103" },
+  { "operator_id": 5, "name": "Houcem", "badge": "100100104" },
+  { "operator_id": 6, "name": "Ousema", "badge": "100100105" }
+]

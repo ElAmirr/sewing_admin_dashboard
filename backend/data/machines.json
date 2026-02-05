@@ -1,0 +1,10 @@
+[
+  { "machine_id": 1, "code": "FH1" },
+  { "machine_id": 2, "code": "FH2" },
+  { "machine_id": 3, "code": "FH3" },
+  { "machine_id": 4, "code": "FH4" },
+  { "machine_id": 5, "code": "FH5" },
+  { "machine_id": 6, "code": "FH6" },
+  { "machine_id": 7, "code": "RH1" },
+  { "machine_id": 8, "code": "RH2" }
+]

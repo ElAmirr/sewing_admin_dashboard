@@ -1,0 +1,82 @@
+[
+  {
+    "session_id": 9,
+    "machine_id": 2,
+    "operator_id": 5,
+    "badge": "100100104",
+    "shift": "Shift1",
+    "started_at": "2026-02-04T13:00:00.000Z",
+    "last_heartbeat": "2026-02-04T21:00:00.000Z",
+    "ended_at": "2026-02-04T21:00:00.000Z"
+  },
+  {
+    "session_id": 8,
+    "machine_id": 2,
+    "operator_id": 4,
+    "badge": "100100103",
+    "shift": "Shift1",
+    "started_at": "2026-02-04T05:00:00.000Z",
+    "last_heartbeat": "2026-02-04T13:00:00.000Z",
+    "ended_at": "2026-02-04T13:00:00.000Z"
+  },
+  {
+    "session_id": 5,
+    "machine_id": 1,
+    "operator_id": 3,
+    "badge": "100100102",
+    "shift": "Shift1",
+    "started_at": "2026-02-03T21:00:00.000Z",
+    "last_heartbeat": "2026-02-04T05:00:00.000Z",
+    "ended_at": "2026-02-04T05:00:00.000Z"
+  },
+  {
+    "session_id": 10,
+    "machine_id": 2,
+    "operator_id": 6,
+    "badge": "100100105",
+    "shift": "Shift1",
+    "started_at": "2026-02-03T21:00:00.000Z",
+    "last_heartbeat": "2026-02-04T05:00:00.000Z",
+    "ended_at": "2026-02-04T05:00:00.000Z"
+  },
+  {
+    "session_id": 1,
+    "machine_id": 1,
+    "operator_id": 1,
+    "badge": "100100100",
+    "shift": "Shift2",
+    "started_at": "2026-02-03T05:05:00.000Z",
+    "last_heartbeat": "2026-02-03T12:55:00.000Z",
+    "ended_at": "2026-02-03T12:55:00.000Z"
+  },
+  {
+    "session_id": 2,
+    "machine_id": 2,
+    "operator_id": 2,
+    "badge": "100100101",
+    "shift": "Shift2",
+    "started_at": "2026-02-03T05:05:00.000Z",
+    "last_heartbeat": "2026-02-03T12:55:00.000Z",
+    "ended_at": "2026-02-03T12:55:00.000Z"
+  },
+  {
+    "session_id": 3,
+    "machine_id": 1,
+    "operator_id": 3,
+    "badge": "100100102",
+    "shift": "Shift3",
+    "started_at": "2026-02-03T13:00:00.000Z",
+    "last_heartbeat": "2026-02-03T21:00:00.000Z",
+    "ended_at": "2026-02-03T21:00:00.000Z"
+  },
+  {
+    "session_id": 4,
+    "machine_id": 2,
+    "operator_id": 4,
+    "badge": "100100103",
+    "shift": "Shift3",
+    "started_at": "2026-02-03T13:00:00.000Z",
+    "last_heartbeat": "2026-02-03T21:00:00.000Z",
+    "ended_at": "2026-02-03T21:00:00.000Z"
+  }
+]
