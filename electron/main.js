@@ -51,11 +51,17 @@ function startBackend() {
 
     // Spawn node process for backend
     // We pass DATA_PATH environment variable
-    const env = { ...process.env, DATA_PATH: dataPath, PORT: 3001 };
+    // In production, we use the Electron executable as the node runtime
+    const env = {
+        ...process.env,
+        DATA_PATH: dataPath,
+        PORT: 3001,
+        ELECTRON_RUN_AS_NODE: "1"
+    };
 
-    backendProcess = spawn("node", [serverScript], {
+    backendProcess = spawn(process.execPath, [serverScript], {
         env,
-        cwd: backendPath, // Set CWD so backend finds its local modules if needed
+        cwd: backendPath,
     });
 
     backendProcess.stdout.on("data", (data) => {

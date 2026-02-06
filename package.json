@@ -5,6 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "concurrently \"npm run electron:dev\" \"npm run frontend:dev\"",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "electron:dev": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
     "frontend:dev": "cd frontend && npm run dev",
     "electron:build": "npm run frontend:build && electron-builder",
@@ -27,13 +28,14 @@
         "to": "backend",
         "filter": [
           "**/*",
-          "!node_modules",
           "!data/**/*"
         ]
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
       "target": "AppImage"
