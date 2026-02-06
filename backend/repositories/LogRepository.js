@@ -3,7 +3,7 @@ import path from "path";
 import { format, eachDayOfInterval, parseISO, isValid } from "date-fns";
 import { metadataRepository } from "./MetadataRepository.js";
 
-const DATA_DIR = path.resolve("data");
+const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
 
 class LogRepository {
     /**
@@ -23,7 +23,7 @@ class LogRepository {
 
                 if (isValid(start) && isValid(end)) {
                     const days = eachDayOfInterval({ start, end });
-                    filesToRead = days.map(d => `${format(d, "ddMMyyyy")}.json`);
+                    filesToRead = days.map(d => `${format(d, "yyyy-MM-dd")}.json`);
                 }
             } catch (e) {
                 console.error("Invalid date range, defaulting to scanning recent files?");
@@ -75,8 +75,8 @@ class LogRepository {
         const { machine_id, cycle_start_time } = logData;
         if (!machine_id || !cycle_start_time) throw new Error("Missing required fields");
 
-        // Format: DDMMYYYY.json
-        const dateStr = format(parseISO(cycle_start_time), "ddMMyyyy");
+        // Format: YYYY-MM-DD.json
+        const dateStr = format(parseISO(cycle_start_time), "yyyy-MM-dd");
         const machineDir = path.join(DATA_DIR, `machine_${machine_id}`);
         const filePath = path.join(machineDir, `${dateStr}.json`);
 

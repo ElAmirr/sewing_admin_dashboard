@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 
-const DATA_DIR = path.resolve("data");
+const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
 
 class MetadataRepository {
   constructor() {
@@ -58,6 +58,26 @@ class MetadataRepository {
   async getSupervisors() {
     await this.loadIfNeeded();
     return this.cache.supervisors;
+  }
+
+  async saveMachines(machines) {
+    this.cache.machines = machines;
+    await this.writeJSON("machines.json", machines);
+  }
+
+  async saveOperators(operators) {
+    this.cache.operators = operators;
+    await this.writeJSON("operators.json", operators);
+  }
+
+  async saveSupervisors(supervisors) {
+    this.cache.supervisors = supervisors;
+    await this.writeJSON("supervisors.json", supervisors);
+  }
+
+  async writeJSON(filename, data) {
+    const filePath = path.join(DATA_DIR, filename);
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
   }
 }
 

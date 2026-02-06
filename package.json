@@ -1,0 +1,61 @@
+{
+  "name": "sewing_admin_dashboard",
+  "version": "1.0.0",
+  "description": "sewing_admin_dashboard",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "concurrently \"npm run electron:dev\" \"npm run frontend:dev\"",
+    "electron:dev": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "frontend:dev": "cd frontend && npm run dev",
+    "electron:build": "npm run frontend:build && electron-builder",
+    "frontend:build": "cd frontend && npm run build"
+  },
+  "build": {
+    "appId": "com.sewing.admin",
+    "productName": "SewingAdminDashboard",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!node_modules",
+          "!data/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ElAmirr/sewing_admin_dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ElAmirr/sewing_admin_dashboard/issues"
+  },
+  "homepage": "https://github.com/ElAmirr/sewing_admin_dashboard#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
+    "wait-on": "^9.0.3"
+  }
+}
