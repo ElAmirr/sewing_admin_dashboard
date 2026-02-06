@@ -1,15 +1,22 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchLogs, fetchSessions } from "../api/api";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import LogsTable from "../components/LogsTable";
 import Navbar from "../components/Navbar";
 import Statistics from "../components/Statistics";
 import KPI from "../components/KPI";
+import Management from "./Management";
 
 export default function AdminDashboard() {
   const [active, setActive] = useState("logs");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+  const parsedDate = new Date(date);
+  const isValidDate = !isNaN(parsedDate.getTime());
+
+  const monthStart = isValidDate ? format(startOfMonth(parsedDate), "yyyy-MM-dd") : "";
+  const monthEnd = isValidDate ? format(endOfMonth(parsedDate), "yyyy-MM-dd") : "";
 
   const { data: logs = [], isLoading: logsLoading, isError: logsError, error: logsErrorObj } = useQuery({
     queryKey: ["logs", { startDate: date, endDate: date }],
@@ -21,6 +28,19 @@ export default function AdminDashboard() {
     queryKey: ["sessions", { startDate: date, endDate: date }],
     queryFn: fetchSessions,
     refetchInterval: 30000,
+  });
+
+  // Monthly data for Statistics
+  const { data: monthlyLogs = [] } = useQuery({
+    queryKey: ["logs", { startDate: monthStart, endDate: monthEnd }],
+    queryFn: fetchLogs,
+    enabled: active === "stats",
+  });
+
+  const { data: monthlySessions = [] } = useQuery({
+    queryKey: ["sessions", { startDate: monthStart, endDate: monthEnd }],
+    queryFn: fetchSessions,
+    enabled: active === "stats",
   });
 
   const isLoading = logsLoading;
@@ -38,7 +58,14 @@ export default function AdminDashboard() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            style={{ padding: "5px", marginLeft: "10px" }}
+            style={{
+              padding: "8px",
+              marginLeft: "10px",
+              borderRadius: "4px",
+              border: "1px solid var(--border-color)",
+              background: "var(--bg-secondary)",
+              color: "var(--text-primary)",
+            }}
           />
         </label>
       </div>
@@ -55,8 +82,10 @@ export default function AdminDashboard() {
       )}
 
       {!isLoading && !isError && active === "stats" && (
-        <Statistics logs={logs} />
+        <Statistics sessions={monthlySessions} logs={monthlyLogs} />
       )}
+
+      {active === "management" && <Management />}
 
       {!isLoading && !isError && active === "kpi" && (
         <KPI logs={logs} sessions={sessions} />

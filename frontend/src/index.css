@@ -3,30 +3,42 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Default Dark Theme Variables */
+  --bg-primary: #121212;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #242424;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: #aaaaaa;
+  --border-color: #333333;
+  --accent-color: #646cff;
+  --accent-hover: #535bf2;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+[data-theme="light"] {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #213547;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --accent-color: #007bff;
+  --accent-hover: #0056b3;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 body {
   margin: 0;
   display: block;
   min-height: 100vh;
-  background-color: #121212; /* Dark theme bg */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 h1 {
@@ -45,9 +57,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -58,9 +72,11 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }

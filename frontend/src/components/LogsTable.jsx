@@ -15,61 +15,58 @@ const cycleRowStyle = {
 export default function LogsTable({ logs }) {
   const cycles = groupByCycle(logs);
 
+
   return (
-    <table border="1" cellPadding="10" cellSpacing="0" width="100%">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Machine</th>
-          <th>Operator</th>
-          <th>Supervisor</th>
-          <th>Color</th>
-          <th>Status</th>
-          <th>Press</th>
-          <th>Check</th>
-          <th>Scan</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {cycles.map((cycle, index) => (
-          <React.Fragment key={index}>
-            {/* Cycle header (shown once) */}
-            <tr style={cycleRowStyle}>
-              <td colSpan={9}>
-                {cycle.isUnspecified ? (
-                  <span>⚠️ Unspecified Cycle / Standalone Logs</span>
-                ) : (
-                  <>
-                    📅 {formatDateOnly(cycle.start)} | 🕒{" "}
-                    {formatTime(cycle.start)} → {formatTime(cycle.end)}
-                  </>
-                )}
-              </td>
-            </tr>
-
-            {/* Logs inside the cycle */}
-            {cycle.logs.map((log) => (
-              <tr key={log.log_id}>
-                <td>{log.log_id}</td>
-                <td>{log.machine}</td>
-                <td>{formatPerson(log.operator)}</td>
-                <td>{formatPerson(log.supervisor)}</td>
-                <td>{log.color}</td>
-                <td style={{ color: statusColor(log.status) }}>
-                  {(log.status ?? "none").toUpperCase()}
-                </td>
-                <td>{formatTime(log.operator_press_time)}</td>
-                <td style={{ color: confirmColor(log.supervisor_confirmation) }}>
-                  {log.supervisor_confirmation ?? "—"}
-                </td>
-                <td>{formatTime(log.supervisor_scan_time)}</td>
-              </tr>
+    <div style={{ overflowX: "auto", padding: "1rem" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg-card)", borderRadius: "8px", overflow: "hidden" }}>
+        <thead>
+          <tr>
+            {["ID", "Machine", "Operator", "Supervisor", "Color", "Status", "Press", "Check", "Scan"].map((head) => (
+              <th key={head} style={{ padding: "1rem", textAlign: "left", color: "var(--text-secondary)", borderBottom: "1px solid var(--border-color)" }}>{head}</th>
             ))}
-          </React.Fragment>
-        ))}
-      </tbody>
-    </table>
+          </tr>
+        </thead>
+
+        <tbody>
+          {cycles.map((cycle, index) => (
+            <React.Fragment key={index}>
+              {/* Cycle header (shown once) */}
+              <tr style={{ ...cycleRowStyle, background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-color)" }}>
+                <td colSpan={9} style={{ padding: "1rem", color: "var(--text-primary)" }}>
+                  {cycle.isUnspecified ? (
+                    <span>⚠️ Unspecified Cycle / Standalone Logs</span>
+                  ) : (
+                    <>
+                      📅 {formatDateOnly(cycle.start)} | 🕒{" "}
+                      {formatTime(cycle.start)} → {formatTime(cycle.end)}
+                    </>
+                  )}
+                </td>
+              </tr>
+
+              {/* Logs inside the cycle */}
+              {cycle.logs.map((log) => (
+                <tr key={log.log_id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{log.log_id}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{log.machine}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatPerson(log.operator)}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatPerson(log.supervisor)}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{log.color}</td>
+                  <td style={{ padding: "1rem", color: statusColor(log.status) }}>
+                    {(log.status ?? "none").toUpperCase()}
+                  </td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatTime(log.operator_press_time)}</td>
+                  <td style={{ padding: "1rem", color: confirmColor(log.supervisor_confirmation) }}>
+                    {log.supervisor_confirmation ?? "—"}
+                  </td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatTime(log.supervisor_scan_time)}</td>
+                </tr>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
