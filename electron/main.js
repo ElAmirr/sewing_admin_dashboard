@@ -189,7 +189,11 @@ function startBackend() {
         DATA_PATH: dataPath,
         PORT: 3001,
         ELECTRON_RUN_AS_NODE: "1",
-        NODE_ENV: isDev ? "development" : "production"
+        NODE_ENV: isDev ? "development" : "production",
+        // Add NODE_PATH to help find external dependencies in dist/node_modules
+        NODE_PATH: isDev
+            ? path.join(backendPath, "node_modules")
+            : path.join(backendPath, "dist", "node_modules")
     };
 
     const isWindows = process.platform === "win32";
