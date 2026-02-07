@@ -24,18 +24,8 @@
       "package.json"
     ],
     "extraResources": [
-      {
-        "from": "backend",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!**/.git",
-          "!**/node_modules/.cache"
-        ]
-      }
-    ],
-    "asarUnpack": [
-      "resources/backend/node_modules/**/*"
+      "backend/**/*",
+      "!backend/node_modules/.cache/**/*"
     ],
     "win": {
       "target": [
