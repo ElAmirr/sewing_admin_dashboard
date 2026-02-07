@@ -9,6 +9,18 @@ const isDev = process.env.NODE_ENV === "development";
 // Define paths
 const userDataPath = app.getPath("userData");
 const settingsPath = path.join(userDataPath, "settings.json");
+const backendLogPath = path.join(userDataPath, "backend.log");
+
+// Clear log file on startup
+fs.writeFileSync(backendLogPath, `Backend Log Started: ${new Date().toISOString()}\n`, "utf-8");
+
+function logToBackendFile(data) {
+    try {
+        fs.appendFileSync(backendLogPath, data.toString(), "utf-8");
+    } catch (err) {
+        console.error("Failed to write to backend log file:", err);
+    }
+}
 
 /**
  * Load settings from settings.json
@@ -73,16 +85,19 @@ function copyRecursiveSync(src, dest) {
  */
 function initializeData() {
     if (!isDev) {
+        logToBackendFile(`[Main] Initializing data. current dataPath: ${dataPath}\n`);
         const sourceDataPath = path.join(process.resourcesPath, "backend/data");
         // Only initialize if the target dataPath doesn't exist or is empty
         if (fs.existsSync(sourceDataPath) && (!fs.existsSync(dataPath) || fs.readdirSync(dataPath).length === 0)) {
-            console.log("Initializing data folder from:", sourceDataPath, "to:", dataPath);
+            logToBackendFile(`[Main] Initializing data folder from: ${sourceDataPath} to: ${dataPath}\n`);
             try {
                 copyRecursiveSync(sourceDataPath, dataPath);
-                console.log("✅ Data folder initialized successfully.");
+                logToBackendFile("✅ [Main] Data folder initialized successfully.\n");
             } catch (err) {
-                console.error("❌ Failed to initialize data folder:", err);
+                logToBackendFile(`❌ [Main] Failed to initialize data folder: ${err}\n`);
             }
+        } else {
+            logToBackendFile(`[Main] Skipping initialization. Source exists: ${fs.existsSync(sourceDataPath)}, Target empty: ${!fs.existsSync(dataPath) || fs.readdirSync(dataPath).length === 0}\n`);
         }
     }
 }
@@ -136,18 +151,37 @@ ipcMain.handle("select-folder", async () => {
     }
 });
 
+ipcMain.handle("get-backend-logs", () => {
+    if (fs.existsSync(backendLogPath)) {
+        return fs.readFileSync(backendLogPath, "utf-8");
+    }
+    return "Log file not found.";
+});
+
 ipcMain.on("restart-app", () => {
     app.relaunch();
     app.exit();
 });
 
 function startBackend() {
-    console.log("Starting backend from:", serverScript);
-    console.log("Data Path:", dataPath);
+    logToBackendFile(`[Main] Attempting to start backend...\n`);
+    logToBackendFile(`[Main] Backend Path: ${backendPath}\n`);
+    logToBackendFile(`[Main] Server Script: ${serverScript}\n`);
+    logToBackendFile(`[Main] Exec Path: ${process.execPath}\n`);
+
+    if (!fs.existsSync(serverScript)) {
+        logToBackendFile(`❌ [Main] ERROR: Server script NOT found at ${serverScript}\n`);
+        return;
+    }
+
+    const nodeModulesPath = path.join(backendPath, "node_modules");
+    if (!fs.existsSync(nodeModulesPath)) {
+        logToBackendFile(`⚠️ [Main] WARNING: node_modules NOT found at ${nodeModulesPath}. Backend might fail to start.\n`);
+    } else {
+        logToBackendFile(`[Main] node_modules found at ${nodeModulesPath}\n`);
+    }
 
     // Spawn node process for backend
-    // We pass DATA_PATH environment variable
-    // In production, we use the Electron executable as the node runtime
     const env = {
         ...process.env,
         DATA_PATH: dataPath,
@@ -155,22 +189,38 @@ function startBackend() {
         ELECTRON_RUN_AS_NODE: "1"
     };
 
-    backendProcess = spawn(process.execPath, [serverScript], {
-        env,
-        cwd: backendPath,
-    });
+    try {
+        backendProcess = spawn(process.execPath, [serverScript], {
+            env,
+            cwd: backendPath,
+            shell: false // Explicitly false for better security and path handling
+        });
 
-    backendProcess.stdout.on("data", (data) => {
-        console.log(`Backend stdout: ${data}`);
-    });
+        backendProcess.on("error", (err) => {
+            logToBackendFile(`❌ [Main] BACKEND SPAWN ERROR: ${err.message}\n`);
+        });
 
-    backendProcess.stderr.on("data", (data) => {
-        console.error(`Backend stderr: ${data}`);
-    });
+        backendProcess.stdout.on("data", (data) => {
+            logToBackendFile(data);
+        });
 
-    backendProcess.on("close", (code) => {
-        console.log(`Backend process exited with code ${code}`);
-    });
+        backendProcess.stderr.on("data", (data) => {
+            logToBackendFile(`ERROR: ${data}`);
+        });
+
+        backendProcess.on("close", (code, signal) => {
+            logToBackendFile(`[Main] Backend process closed with code ${code} and signal ${signal}\n`);
+        });
+
+        backendProcess.on("exit", (code, signal) => {
+            logToBackendFile(`[Main] Backend process exited with code ${code} and signal ${signal}\n`);
+        });
+
+        logToBackendFile(`[Main] Backend process spawned with PID: ${backendProcess.pid}\n`);
+
+    } catch (err) {
+        logToBackendFile(`❌ [Main] FATAL: Failed to spawn backend process: ${err.message}\n`);
+    }
 }
 
 app.whenReady().then(() => {

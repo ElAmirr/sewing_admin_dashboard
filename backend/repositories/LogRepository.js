@@ -4,6 +4,7 @@ import { format, eachDayOfInterval, parseISO, isValid } from "date-fns";
 import { metadataRepository } from "./MetadataRepository.js";
 
 const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
+console.log(`[LogRepository] Using DATA_DIR: ${DATA_DIR}`);
 
 class LogRepository {
     /**

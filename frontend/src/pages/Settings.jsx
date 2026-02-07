@@ -4,12 +4,25 @@ const Settings = () => {
     const [dataPath, setDataPath] = useState('');
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState('');
+    const [logs, setLogs] = useState('');
 
     useEffect(() => {
         const fetchSettings = async () => {
             if (window.electron && window.electron.getSettings) {
-                const settings = await window.electron.getSettings();
-                setDataPath(settings.dataPath);
+                try {
+                    const settings = await window.electron.getSettings();
+                    setDataPath(settings.dataPath);
+                } catch (err) {
+                    console.error("Failed to fetch settings:", err);
+                }
+            }
+            if (window.electron && window.electron.getBackendLogs) {
+                try {
+                    const backendLogs = await window.electron.getBackendLogs();
+                    setLogs(backendLogs);
+                } catch (err) {
+                    console.error("Failed to fetch logs:", err);
+                }
             }
             setLoading(false);
         };
@@ -35,13 +48,20 @@ const Settings = () => {
         }
     };
 
+    const refreshLogs = async () => {
+        if (window.electron && window.electron.getBackendLogs) {
+            const backendLogs = await window.electron.getBackendLogs();
+            setLogs(backendLogs);
+        }
+    };
+
     if (loading) return <div className="p-6">Loading settings...</div>;
 
     return (
-        <div className="p-8 max-w-2xl mx-auto">
+        <div className="p-8 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Application Settings</h1>
 
-            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 mb-8">
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">Data Storage</h2>
                 <p className="text-gray-600 mb-6 italic">
                     Select where the database and log files are stored. Changing this will restart the application.
@@ -82,6 +102,24 @@ const Settings = () => {
                         {successMessage}
                     </div>
                 )}
+            </div>
+
+            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-700">Backend Debug Logs</h2>
+                    <button
+                        onClick={refreshLogs}
+                        className="text-sm px-3 py-1 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                    >
+                        Refresh Logs
+                    </button>
+                </div>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs h-64 overflow-auto font-mono">
+                    {logs || "No logs available yet."}
+                </pre>
+                <p className="text-xs text-gray-500 mt-2">
+                    If data is not loading, check the logs above for "ERROR" or incorrect "DATA_DIR" paths.
+                </p>
             </div>
 
             {!window.electron && (

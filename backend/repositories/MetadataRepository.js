@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 
 const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
+console.log(`[MetadataRepository] Using DATA_DIR: ${DATA_DIR}`);
 
 class MetadataRepository {
   constructor() {
