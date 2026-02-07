@@ -18,7 +18,8 @@
       "output": "dist"
     },
     "files": [
-      "electron/**/*",
+      "electron/main.js",
+      "electron/preload.js",
       "frontend/dist/**/*",
       "package.json"
     ],

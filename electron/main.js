@@ -1,12 +1,58 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
+
+// Determine if we are in development mode
+const isDev = process.env.NODE_ENV === "development";
+
+// Define paths
+const userDataPath = app.getPath("userData");
+const settingsPath = path.join(userDataPath, "settings.json");
+
+/**
+ * Load settings from settings.json
+ */
+function loadSettings() {
+    if (fs.existsSync(settingsPath)) {
+        try {
+            return JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+        } catch (err) {
+            console.error("Failed to load settings:", err);
+        }
+    }
+    return { dataPath: path.join(userDataPath, "data") };
+}
+
+/**
+ * Save settings to settings.json
+ */
+function saveSettings(settings) {
+    try {
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+    } catch (err) {
+        console.error("Failed to save settings:", err);
+    }
+}
+
+let settings = loadSettings();
+let dataPath = settings.dataPath;
+
+// In production, backend is likely inside 'resources' folder
+const backendPath = isDev
+    ? path.join(__dirname, "../backend")
+    : path.join(process.resourcesPath, "backend");
+
+const serverScript = path.join(backendPath, "server.js");
+
+let mainWindow;
+let backendProcess;
 
 /**
  * Recursively copies a directory or file.
  */
 function copyRecursiveSync(src, dest) {
+    if (!fs.existsSync(src)) return;
     const stats = fs.statSync(src);
     const isDirectory = stats.isDirectory();
     if (isDirectory) {
@@ -28,8 +74,9 @@ function copyRecursiveSync(src, dest) {
 function initializeData() {
     if (!isDev) {
         const sourceDataPath = path.join(process.resourcesPath, "backend/data");
-        if (fs.existsSync(sourceDataPath) && !fs.existsSync(dataPath)) {
-            console.log("Initializing data folder from:", sourceDataPath);
+        // Only initialize if the target dataPath doesn't exist or is empty
+        if (fs.existsSync(sourceDataPath) && (!fs.existsSync(dataPath) || fs.readdirSync(dataPath).length === 0)) {
+            console.log("Initializing data folder from:", sourceDataPath, "to:", dataPath);
             try {
                 copyRecursiveSync(sourceDataPath, dataPath);
                 console.log("✅ Data folder initialized successfully.");
@@ -41,25 +88,6 @@ function initializeData() {
 }
 
 
-// Determine if we are in development mode
-const isDev = process.env.NODE_ENV === "development";
-
-// Define paths
-// In production, backend is likely inside 'resources' folder
-const backendPath = isDev
-    ? path.join(__dirname, "../backend")
-    : path.join(process.resourcesPath, "backend");
-
-const serverScript = path.join(backendPath, "server.js");
-
-// Define Data Path (AppData)
-// We want data to persist in User Data folder
-const userDataPath = app.getPath("userData");
-const dataPath = path.join(userDataPath, "data");
-
-let mainWindow;
-let backendProcess;
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
@@ -67,6 +95,7 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            preload: path.join(__dirname, "preload.js")
         },
         icon: path.join(__dirname, "../frontend/public/forvia_log.png")
     });
@@ -83,6 +112,34 @@ function createWindow() {
         mainWindow = null;
     });
 }
+
+// IPC Handlers
+ipcMain.handle("get-settings", () => {
+    return loadSettings();
+});
+
+ipcMain.handle("save-settings", (event, newSettings) => {
+    saveSettings(newSettings);
+    settings = newSettings;
+    dataPath = settings.dataPath; // Note: This only affects the next backend start
+    return { success: true };
+});
+
+ipcMain.handle("select-folder", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ["openDirectory"]
+    });
+    if (result.canceled) {
+        return null;
+    } else {
+        return result.filePaths[0];
+    }
+});
+
+ipcMain.on("restart-app", () => {
+    app.relaunch();
+    app.exit();
+});
 
 function startBackend() {
     console.log("Starting backend from:", serverScript);

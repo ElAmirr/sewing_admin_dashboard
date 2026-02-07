@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar";
 import Statistics from "../components/Statistics";
 import KPI from "../components/KPI";
 import Management from "./Management";
+import Settings from "./Settings";
 
 export default function AdminDashboard() {
   const [active, setActive] = useState("logs");
@@ -90,6 +91,8 @@ export default function AdminDashboard() {
       {!isLoading && !isError && active === "kpi" && (
         <KPI logs={logs} sessions={sessions} />
       )}
+
+      {active === "settings" && <Settings />}
     </div>
   );
 }
