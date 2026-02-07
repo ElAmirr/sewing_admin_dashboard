@@ -5,9 +5,23 @@ const Settings = () => {
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState('');
     const [logs, setLogs] = useState('');
+    const [backendStatus, setBackendStatus] = useState('Checking...');
+
+    const checkBackendStatus = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/health');
+            if (response.ok) {
+                setBackendStatus('✅ Running');
+            } else {
+                setBackendStatus('❌ Not Running');
+            }
+        } catch (error) {
+            setBackendStatus('❌ Not Running');
+        }
+    };
 
     useEffect(() => {
-        const fetchSettings = async () => {
+        const fetchData = async () => {
             if (window.electron && window.electron.getSettings) {
                 try {
                     const settings = await window.electron.getSettings();
@@ -24,9 +38,10 @@ const Settings = () => {
                     console.error("Failed to fetch logs:", err);
                 }
             }
+            await checkBackendStatus();
             setLoading(false);
         };
-        fetchSettings();
+        fetchData();
     }, []);
 
     const handleSelectFolder = async () => {
@@ -53,6 +68,7 @@ const Settings = () => {
             const backendLogs = await window.electron.getBackendLogs();
             setLogs(backendLogs);
         }
+        await checkBackendStatus();
     };
 
     if (loading) return <div className="p-6">Loading settings...</div>;
@@ -62,7 +78,13 @@ const Settings = () => {
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Application Settings</h1>
 
             <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">Data Storage</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-700">Data Storage</h2>
+                    <span className={`px-3 py-1 rounded text-sm font-bold ${backendStatus.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        Backend: {backendStatus}
+                    </span>
+                </div>
+
                 <p className="text-gray-600 mb-6 italic">
                     Select where the database and log files are stored. Changing this will restart the application.
                 </p>

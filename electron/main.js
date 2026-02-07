@@ -186,18 +186,24 @@ function startBackend() {
         ...process.env,
         DATA_PATH: dataPath,
         PORT: 3001,
-        ELECTRON_RUN_AS_NODE: "1"
+        ELECTRON_RUN_AS_NODE: "1",
+        NODE_ENV: isDev ? "development" : "production"
     };
 
+    const isWindows = process.platform === "win32";
+
     try {
-        backendProcess = spawn(process.execPath, [serverScript], {
+        logToBackendFile(`[Main] Spawning backend with shell: ${isWindows}\n`);
+
+        backendProcess = spawn(process.execPath, [path.resolve(serverScript)], {
             env,
-            cwd: backendPath,
-            shell: false // Explicitly false for better security and path handling
+            cwd: path.resolve(backendPath),
+            shell: isWindows // Use shell on Windows for better path handling
         });
 
         backendProcess.on("error", (err) => {
             logToBackendFile(`❌ [Main] BACKEND SPAWN ERROR: ${err.message}\n`);
+            logToBackendFile(`[Main] Error details: ${JSON.stringify(err)}\n`);
         });
 
         backendProcess.stdout.on("data", (data) => {
@@ -214,9 +220,14 @@ function startBackend() {
 
         backendProcess.on("exit", (code, signal) => {
             logToBackendFile(`[Main] Backend process exited with code ${code} and signal ${signal}\n`);
+            if (code !== 0 && code !== null) {
+                logToBackendFile(`⚠️ [Main] Backend exited unexpectedly. Check for missing dependencies or port conflicts.\n`);
+            }
         });
 
-        logToBackendFile(`[Main] Backend process spawned with PID: ${backendProcess.pid}\n`);
+        if (backendProcess.pid) {
+            logToBackendFile(`[Main] Backend process spawned with PID: ${backendProcess.pid}\n`);
+        }
 
     } catch (err) {
         logToBackendFile(`❌ [Main] FATAL: Failed to spawn backend process: ${err.message}\n`);
