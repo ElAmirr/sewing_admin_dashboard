@@ -24,9 +24,16 @@
       "package.json"
     ],
     "extraResources": [
-      "backend/**/*",
-      "!backend/node_modules/.cache/**/*"
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/.git/**"
+        ]
+      }
     ],
+    "afterPack": "scripts/afterPack.js",
     "win": {
       "target": [
         "nsis"
@@ -53,6 +60,7 @@
     "cross-env": "^10.1.0",
     "electron": "^40.2.1",
     "electron-builder": "^26.7.0",
+    "fs-extra": "^11.3.3",
     "wait-on": "^9.0.3"
   }
 }
