@@ -28,9 +28,14 @@
         "from": "backend",
         "to": "backend",
         "filter": [
-          "**/*"
+          "**/*",
+          "!**/.git",
+          "!**/node_modules/.cache"
         ]
       }
+    ],
+    "asarUnpack": [
+      "resources/backend/node_modules/**/*"
     ],
     "win": {
       "target": [
