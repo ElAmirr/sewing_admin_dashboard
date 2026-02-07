@@ -237,7 +237,13 @@ function startBackend() {
 app.whenReady().then(() => {
     initializeData();
     startBackend();
-    createWindow();
+
+    // Wait 5 seconds for backend to fully start before opening window
+    logToBackendFile("[Main] Waiting 5 seconds for backend to initialize...\n");
+    setTimeout(() => {
+        logToBackendFile("[Main] Creating window now.\n");
+        createWindow();
+    }, 5000);
 
     app.on("activate", () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
