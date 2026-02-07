@@ -1,6 +1,45 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
+const fs = require("fs");
+
+/**
+ * Recursively copies a directory or file.
+ */
+function copyRecursiveSync(src, dest) {
+    const stats = fs.statSync(src);
+    const isDirectory = stats.isDirectory();
+    if (isDirectory) {
+        if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
+        }
+        fs.readdirSync(src).forEach((childItemName) => {
+            copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+        });
+    } else {
+        fs.copyFileSync(src, dest);
+    }
+}
+
+/**
+ * Initializes the data folder in userData if it doesn't exist.
+ * This copies default data from the app package on first run.
+ */
+function initializeData() {
+    if (!isDev) {
+        const sourceDataPath = path.join(process.resourcesPath, "backend/data");
+        if (fs.existsSync(sourceDataPath) && !fs.existsSync(dataPath)) {
+            console.log("Initializing data folder from:", sourceDataPath);
+            try {
+                copyRecursiveSync(sourceDataPath, dataPath);
+                console.log("✅ Data folder initialized successfully.");
+            } catch (err) {
+                console.error("❌ Failed to initialize data folder:", err);
+            }
+        }
+    }
+}
+
 
 // Determine if we are in development mode
 const isDev = process.env.NODE_ENV === "development";
@@ -78,6 +117,7 @@ function startBackend() {
 }
 
 app.whenReady().then(() => {
+    initializeData();
     startBackend();
     createWindow();
 
