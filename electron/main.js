@@ -55,7 +55,9 @@ const backendPath = isDev
     ? path.join(__dirname, "../backend")
     : path.join(process.resourcesPath, "backend");
 
-const serverScript = path.join(backendPath, "server.js");
+const serverScript = isDev
+    ? path.join(backendPath, "server.js")
+    : path.join(backendPath, "dist/server.bundle.js");
 
 let mainWindow;
 let backendProcess;
