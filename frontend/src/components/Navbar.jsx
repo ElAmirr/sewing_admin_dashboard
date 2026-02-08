@@ -6,8 +6,7 @@ import {
   LineChart,
   BarChart3 as StatsIcon,
   Sun,
-  Moon,
-  Settings as SettingsIcon
+  Moon
 } from "lucide-react";
 
 export default function Navbar({ active, onChange }) {
@@ -17,7 +16,6 @@ export default function Navbar({ active, onChange }) {
     { id: "kpi", label: "KPI", icon: Barchart },
     { id: "stats", label: "Statistics", icon: StatsIcon },
     { id: "management", label: "Management", icon: ClipboardList }, // Placeholder icon, maybe use Settings or Users
-    { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
   return (

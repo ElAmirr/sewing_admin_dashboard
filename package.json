@@ -8,8 +8,7 @@
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "electron:dev": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
     "frontend:dev": "cd frontend && npm run dev",
-    "backend:build": "cd backend && node build.js",
-    "electron:build": "npm run frontend:build && npm run backend:build && electron-builder",
+    "electron:build": "npm run frontend:build && electron-builder",
     "frontend:build": "cd frontend && npm run build"
   },
   "build": {
@@ -19,19 +18,18 @@
       "output": "dist"
     },
     "files": [
-      "electron/main.js",
-      "electron/preload.js",
+      "electron/**/*",
       "frontend/dist/**/*",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "backend/dist",
-        "to": "backend/dist"
-      },
-      {
-        "from": "backend/data",
-        "to": "backend/data"
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!data/**/*"
+        ]
       }
     ],
     "win": {
@@ -60,8 +58,6 @@
     "cross-env": "^10.1.0",
     "electron": "^40.2.1",
     "electron-builder": "^26.7.0",
-    "esbuild": "^0.27.3",
-    "fs-extra": "^11.3.3",
     "wait-on": "^9.0.3"
   }
 }

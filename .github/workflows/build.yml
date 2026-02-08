@@ -2,51 +2,48 @@ name: Build Electron App
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
-    name: Build Windows EXE
     runs-on: windows-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Using 20 as it's the current LTS and widely compatible. 
 
-      - name: Install Root Dependencies
-        run: npm install
+    - name: Install Dependencies (Root)
+      run: npm install
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
+    - name: Install Dependencies (Frontend)
+      run: |
+        cd frontend
+        npm install
 
-      - name: Install Backend Dependencies
-        run: |
-          cd backend
-          npm install
+    - name: Install Dependencies (Backend)
+      run: |
+        cd backend
+        npm install
 
-      - name: Build Electron App
-        run: npm run electron:build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SewingAdminDashboard-Windows
-          path: |
-            dist/*.exe
-            dist/*.blockmap
-          if-no-files-found: error
+    - name: Build Electron App
+      run: npm run electron:build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: sewing-admin-dashboard-setup
+        path: dist/*.exe

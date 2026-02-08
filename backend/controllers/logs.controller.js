@@ -112,7 +112,7 @@ export const getSessions = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
+    const DATA_DIR = path.resolve("data");
     const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
 
     let sessions = [];
