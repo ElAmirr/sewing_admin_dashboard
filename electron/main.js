@@ -17,20 +17,27 @@ const serverScript = path.join(backendPath, "server.js");
 // We want data to persist in User Data folder or config file
 let dataPath;
 const fs = require('fs');
-const exeDir = path.dirname(app.getPath("exe")); // Directory of the executable
-const configPath = path.join(exeDir, 'config.json');
+const exeDir = isDev ? __dirname : path.dirname(app.getPath("exe"));
+const settingsPath = isDev
+    ? path.join(__dirname, '../setting.json')
+    : path.join(exeDir, 'setting.json');
+
+console.log(`Checking for settings file at: ${settingsPath}`);
 
 try {
-    if (fs.existsSync(configPath)) {
-        const configData = fs.readFileSync(configPath, 'utf8');
-        const config = JSON.parse(configData);
-        if (config.dataPath) {
-            dataPath = config.dataPath;
+    if (fs.existsSync(settingsPath)) {
+        const settingsData = fs.readFileSync(settingsPath, 'utf8');
+        const settings = JSON.parse(settingsData);
+        if (settings.dataPath) {
+            // Resolve relative paths relative to the settings file or exe dir
+            dataPath = path.isAbsolute(settings.dataPath)
+                ? settings.dataPath
+                : path.resolve(isDev ? path.join(__dirname, '..') : exeDir, settings.dataPath);
             console.log(`Using configured data path: ${dataPath}`);
         }
     }
 } catch (error) {
-    console.error("Error reading config.json:", error);
+    console.error("Error reading setting.json:", error);
 }
 
 if (!dataPath) {

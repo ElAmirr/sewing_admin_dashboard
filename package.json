@@ -32,6 +32,9 @@
         ]
       }
     ],
+    "extraFiles": [
+      "setting.json"
+    ],
     "win": {
       "target": [
         "nsis"
