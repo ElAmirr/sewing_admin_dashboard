@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 
-const DATA_DIR = process.env.DATA_PATH || path.resolve("data");
+import { DATA_DIR } from "../config/config.js";
 
 class MetadataRepository {
   constructor() {

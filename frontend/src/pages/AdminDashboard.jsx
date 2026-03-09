@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchLogs, fetchSessions } from "../api/api";
+import { fetchLogs, fetchSessions, fetchMachines } from "../api/api";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { DateIcon, ShiftIcon, MachineIcon } from "../components/Icons";
 import LogsTable from "../components/LogsTable";
 import Navbar from "../components/Navbar";
 import Statistics from "../components/Statistics";
@@ -9,14 +12,23 @@ import KPI from "../components/KPI";
 import Management from "./Management";
 
 export default function AdminDashboard() {
-  const [active, setActive] = useState("logs");
+  const { t } = useLanguage();
+  const { isSuperAdmin } = useAuth();
+  const [active, setActive] = useState(isSuperAdmin ? "logs" : "kpi");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [shift, setShift] = useState("all");
+  const [machineType, setMachineType] = useState("all");
 
   const parsedDate = new Date(date);
   const isValidDate = !isNaN(parsedDate.getTime());
 
   const monthStart = isValidDate ? format(startOfMonth(parsedDate), "yyyy-MM-dd") : "";
   const monthEnd = isValidDate ? format(endOfMonth(parsedDate), "yyyy-MM-dd") : "";
+
+  const { data: machines = [] } = useQuery({
+    queryKey: ["machines"],
+    queryFn: fetchMachines,
+  });
 
   const { data: logs = [], isLoading: logsLoading, isError: logsError, error: logsErrorObj } = useQuery({
     queryKey: ["logs", { startDate: date, endDate: date }],
@@ -30,6 +42,45 @@ export default function AdminDashboard() {
     refetchInterval: 30000,
   });
 
+  // Create a map for quick machine lookup
+  const machineMap = useMemo(() => {
+    const map = {};
+    machines.forEach(m => {
+      map[m.machine_id] = m.code;
+    });
+    return map;
+  }, [machines]);
+
+  // Combined filtering logic
+  const getFilteredData = (data, isSession = false) => {
+    return data.filter(item => {
+      // 1. Shift Filter
+      const startTime = isSession ? item.started_at : item.cycle_start_time;
+      if (!startTime) return false;
+
+      let passShift = true;
+      if (shift !== "all") {
+        const h = new Date(startTime).getHours();
+        if (shift === "shift1") passShift = (h >= 21 || h < 5);
+        else if (shift === "shift2") passShift = (h >= 5 && h < 13);
+        else if (shift === "shift3") passShift = (h >= 13 && h < 21);
+      }
+
+      // 2. Machine Type Filter
+      let passMachine = true;
+      if (machineType !== "all") {
+        const id = item.machine_id || item.machine;
+        const code = machineMap[id] || "";
+        passMachine = code.startsWith(machineType);
+      }
+
+      return passShift && passMachine;
+    });
+  };
+
+  const filteredLogs = useMemo(() => getFilteredData(logs), [logs, shift, machineType, machineMap]);
+  const filteredSessions = useMemo(() => getFilteredData(sessions, true), [sessions, shift, machineType, machineMap]);
+
   // Monthly data for Statistics
   const { data: monthlyLogs = [] } = useQuery({
     queryKey: ["logs", { startDate: monthStart, endDate: monthEnd }],
@@ -38,10 +89,13 @@ export default function AdminDashboard() {
   });
 
   const { data: monthlySessions = [] } = useQuery({
-    queryKey: ["sessions", { startDate: monthStart, endDate: monthEnd }],
+    queryKey: ["sessionsFixed", { startDate: monthStart, endDate: monthEnd }],
     queryFn: fetchSessions,
     enabled: active === "stats",
   });
+
+  const filteredMonthlyLogs = useMemo(() => getFilteredData(monthlyLogs), [monthlyLogs, shift, machineType, machineMap]);
+  const filteredMonthlySessions = useMemo(() => getFilteredData(monthlySessions, true), [monthlySessions, shift, machineType, machineMap]);
 
   const isLoading = logsLoading;
   const isError = logsError;
@@ -51,45 +105,72 @@ export default function AdminDashboard() {
     <div>
       <Navbar active={active} onChange={setActive} />
 
-      <div style={{ padding: "1rem" }}>
-        <label>
-          <strong>Select Date: </strong>
+      <div style={{ padding: "1rem", display: "flex", gap: "1.5rem", alignItems: "center", flexWrap: "wrap", borderBottom: "1px solid var(--border-color)", background: "var(--bg-card)" }}>
+        <div style={styles.filterGroup}>
+          <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}><DateIcon size={18} /> {t("filters.date")}: </strong>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            style={{
-              padding: "8px",
-              marginLeft: "10px",
-              borderRadius: "4px",
-              border: "1px solid var(--border-color)",
-              background: "var(--bg-secondary)",
-              color: "var(--text-primary)",
-            }}
+            style={styles.input}
           />
-        </label>
+        </div>
+
+        <div style={styles.filterGroup}>
+          <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}><ShiftIcon size={18} /> {t("filters.shift")}: </strong>
+          <select value={shift} onChange={(e) => setShift(e.target.value)} style={styles.input}>
+            <option value="all">{t("filters.allShifts")}</option>
+            <option value="shift1">{t("filters.shift1")}</option>
+            <option value="shift2">{t("filters.shift2")}</option>
+            <option value="shift3">{t("filters.shift3")}</option>
+          </select>
+        </div>
+
+        <div style={styles.filterGroup}>
+          <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}><MachineIcon size={18} /> {t("filters.machine")}: </strong>
+          <select value={machineType} onChange={(e) => setMachineType(e.target.value)} style={styles.input}>
+            <option value="all">{t("filters.allTypes")}</option>
+            <option value="RH">{t("filters.roundHead")}</option>
+            <option value="FH">{t("filters.flatHead")}</option>
+          </select>
+        </div>
       </div>
 
-      {isLoading && <p>Loading logs...</p>}
-      {isError && <p style={{ color: "red" }}>Error: {error.message}</p>}
+      {isLoading && <p style={{ padding: "2rem", textAlign: "center" }}>{t("status.loading")}</p>}
+      {isError && <p style={{ color: "red", padding: "2rem" }}>Error: {error.message}</p>}
 
-      {!isLoading && !isError && active === "logs" && logs.length === 0 && (
-        <p>No logs available for {date}.</p>
-      )}
-
-      {!isLoading && !isError && active === "logs" && logs.length > 0 && (
-        <LogsTable logs={logs} />
+      {!isLoading && !isError && active === "logs" && (
+        filteredLogs.length === 0
+          ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>{t("status.noLogs")}</p>
+          : <LogsTable logs={filteredLogs} />
       )}
 
       {!isLoading && !isError && active === "stats" && (
-        <Statistics sessions={monthlySessions} logs={monthlyLogs} />
+        <Statistics sessions={filteredMonthlySessions} logs={filteredMonthlyLogs} shift={shift} />
       )}
 
       {active === "management" && <Management />}
 
       {!isLoading && !isError && active === "kpi" && (
-        <KPI logs={logs} sessions={sessions} />
+        <KPI logs={filteredLogs} sessions={filteredSessions} />
       )}
     </div>
   );
 }
+
+const styles = {
+  filterGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  input: {
+    padding: "8px 12px",
+    borderRadius: "6px",
+    border: "1px solid var(--border-color)",
+    background: "var(--bg-secondary)",
+    color: "var(--text-primary)",
+    fontSize: "0.9rem",
+    outline: "none",
+  }
+};

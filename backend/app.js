@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import logsRoutes from "./routes/logs.routes.js";
 import * as metadataController from "./controllers/metadata.controller.js";
+import * as authController from "./controllers/auth.controller.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -16,6 +17,12 @@ app.use(express.json());
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
+
+// Auth Routes
+app.post("/api/auth/login", authController.login);
+app.get("/api/auth/users", authController.getUsers);
+app.post("/api/auth/users", authController.addUser);
+app.delete("/api/auth/users/:id", authController.deleteUser);
 
 // Routes
 app.use("/api/logs", logsRoutes);

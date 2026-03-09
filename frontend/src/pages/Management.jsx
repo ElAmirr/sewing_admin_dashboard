@@ -1,8 +1,20 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus, User, Users, Cog, LayoutGrid, Pencil, X, Check } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import {
+    OperatorIcon,
+    SupervisorIcon,
+    MachineIcon,
+    PlusIcon,
+    EditIcon,
+    DeleteIcon,
+    CheckIcon,
+    CancelIcon,
+} from "../components/Icons";
+import { Shield } from "lucide-react";
 
-// API Helpers (Ideally move these to api.js)
+// API Helpers
 const API_BASE = "http://localhost:3001/api";
 
 const fetchMetadata = async (type) => {
@@ -39,17 +51,52 @@ const updateMetadata = async ({ type, id, data }) => {
     return res.json();
 };
 
+// Auth API helpers
+const fetchUsers = async () => {
+    const res = await fetch(`${API_BASE}/auth/users`);
+    if (!res.ok) throw new Error("Failed to fetch users");
+    return res.json();
+};
+
+const addAuthUser = async (data) => {
+    const res = await fetch(`${API_BASE}/auth/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add user");
+    }
+    return res.json();
+};
+
+const deleteAuthUser = async (id) => {
+    const res = await fetch(`${API_BASE}/auth/users/${id}`, {
+        method: "DELETE",
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to delete user");
+    }
+    return res.json();
+};
+
 export default function Management() {
+    const { t } = useLanguage();
+    const { isSuperAdmin } = useAuth();
     const [activeTab, setActiveTab] = useState("operators");
 
     const renderContent = () => {
         switch (activeTab) {
             case "operators":
-                return <MetadataSection type="operators" title="Operators" icon={User} fields={["operator_id", "name", "badge"]} />;
+                return <MetadataSection type="operators" title={t("management.operators")} icon={OperatorIcon} fields={["operator_id", "name", "badge"]} />;
             case "supervisors":
-                return <MetadataSection type="supervisors" title="Supervisors" icon={Users} fields={["supervisor_id", "supervisor_name", "badge"]} />;
+                return <MetadataSection type="supervisors" title={t("management.supervisors")} icon={SupervisorIcon} fields={["supervisor_id", "supervisor_name", "badge"]} />;
             case "machines":
-                return <MetadataSection type="machines" title="Machines" icon={Cog} fields={["machine_id", "code"]} />;
+                return <MetadataSection type="machines" title={t("management.machines")} icon={MachineIcon} fields={["machine_id", "code"]} />;
+            case "admins":
+                return <AdminSection />;
             default:
                 return null;
         }
@@ -58,21 +105,26 @@ export default function Management() {
     return (
         <div style={styles.container}>
             <header style={styles.header}>
-                <h1 style={styles.title}>System Management</h1>
-                <p style={styles.subtitle}>Manage operators, supervisors, and machine configurations.</p>
+                <h1 style={styles.title}>{t("management.title")}</h1>
+                <p style={styles.subtitle}>{t("management.subtitle")}</p>
             </header>
 
             <div style={styles.layout}>
                 <aside style={styles.sidebar}>
                     <button style={activeTab === "operators" ? styles.tabActive : styles.tab} onClick={() => setActiveTab("operators")}>
-                        <User size={18} /> Operators
+                        <OperatorIcon size={18} /> {t("management.operators")}
                     </button>
                     <button style={activeTab === "supervisors" ? styles.tabActive : styles.tab} onClick={() => setActiveTab("supervisors")}>
-                        <Users size={18} /> Supervisors
+                        <SupervisorIcon size={18} /> {t("management.supervisors")}
                     </button>
                     <button style={activeTab === "machines" ? styles.tabActive : styles.tab} onClick={() => setActiveTab("machines")}>
-                        <Cog size={18} /> Machines
+                        <MachineIcon size={18} /> {t("management.machines")}
                     </button>
+                    {isSuperAdmin && (
+                        <button style={activeTab === "admins" ? styles.tabActive : styles.tab} onClick={() => setActiveTab("admins")}>
+                            <Shield size={18} /> {t("management.admins")}
+                        </button>
+                    )}
                 </aside>
                 <main style={styles.content}>
                     {renderContent()}
@@ -82,7 +134,131 @@ export default function Management() {
     );
 }
 
+/* =====================
+   ADMIN SECTION
+===================== */
+
+function AdminSection() {
+    const { t } = useLanguage();
+    const queryClient = useQueryClient();
+
+    const { data: users = [], isLoading } = useQuery({
+        queryKey: ["auth-users"],
+        queryFn: fetchUsers,
+    });
+
+    const mutationAdd = useMutation({
+        mutationFn: addAuthUser,
+        onSuccess: () => {
+            queryClient.invalidateQueries(["auth-users"]);
+            setFormData({});
+        },
+        onError: (err) => alert(err.message),
+    });
+
+    const mutationDelete = useMutation({
+        mutationFn: deleteAuthUser,
+        onSuccess: () => queryClient.invalidateQueries(["auth-users"]),
+        onError: (err) => alert(err.message),
+    });
+
+    const [formData, setFormData] = useState({});
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        mutationAdd.mutate(formData);
+    };
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    if (isLoading) return <div>{t("management.loading")}</div>;
+
+    return (
+        <div>
+            <div style={styles.sectionHeader}>
+                <Shield size={24} style={{ color: "var(--accent-color)" }} />
+                <h2>{t("management.admins")} {t("management.management")}</h2>
+            </div>
+
+            <div style={styles.card}>
+                <h3>{t("management.addNew")} {t("login.admin")}</h3>
+                <form onSubmit={handleSubmit} style={styles.form}>
+                    <input
+                        name="name"
+                        placeholder={t("management.adminName")}
+                        value={formData.name || ""}
+                        onChange={handleChange}
+                        style={styles.input}
+                        required
+                    />
+                    <input
+                        name="username"
+                        placeholder={t("login.username")}
+                        value={formData.username || ""}
+                        onChange={handleChange}
+                        style={styles.input}
+                        required
+                    />
+                    <input
+                        name="password"
+                        type="password"
+                        placeholder={t("login.password")}
+                        value={formData.password || ""}
+                        onChange={handleChange}
+                        style={styles.input}
+                        required
+                    />
+                    <button type="submit" style={styles.addButton} disabled={mutationAdd.isPending}>
+                        <PlusIcon size={16} /> {mutationAdd.isPending ? t("management.adding") : t("management.addItem")}
+                    </button>
+                </form>
+            </div>
+
+            <div style={styles.grid}>
+                {users.map((user) => (
+                    <div key={user.id} style={styles.itemCard}>
+                        <div>
+                            <strong style={{ color: "var(--text-primary)" }}>{user.name}</strong>
+                            <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>@{user.username}</div>
+                            <div style={{
+                                fontSize: "0.7rem",
+                                color: user.role === "super_admin" ? "#a78bfa" : "#60a5fa",
+                                textTransform: "uppercase",
+                                fontWeight: "600",
+                                marginTop: "4px",
+                                letterSpacing: "0.5px",
+                            }}>
+                                {user.role === "super_admin" ? t("login.superAdmin") : t("login.admin")}
+                            </div>
+                        </div>
+                        {user.role !== "super_admin" && (
+                            <button
+                                onClick={() => {
+                                    if (window.confirm(`${t("management.deleteConfirm")} ${user.name}?`)) {
+                                        mutationDelete.mutate(user.id);
+                                    }
+                                }}
+                                style={styles.deleteButton}
+                                title="Delete"
+                            >
+                                <DeleteIcon size={16} />
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* =====================
+   METADATA SECTION
+===================== */
+
 function MetadataSection({ type, title, icon: Icon, fields }) {
+    const { t } = useLanguage();
     const queryClient = useQueryClient();
     const { data: items = [], isLoading } = useQuery({
         queryKey: [type],
@@ -143,17 +319,17 @@ function MetadataSection({ type, title, icon: Icon, fields }) {
         setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
     };
 
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading) return <div>{t("management.loading")}</div>;
 
     return (
         <div>
             <div style={styles.sectionHeader}>
                 <Icon size={24} style={{ color: "var(--accent-color)" }} />
-                <h2>{title} Management</h2>
+                <h2>{title} {t("management.management")}</h2>
             </div>
 
             <div style={styles.card}>
-                <h3>Add New {title.slice(0, -1)}</h3>
+                <h3>{t("management.addNew")} {title.slice(0, -1)}</h3>
                 <form onSubmit={handleSubmit} style={styles.form}>
                     {fields.map((field) => (
                         <input
@@ -167,10 +343,10 @@ function MetadataSection({ type, title, icon: Icon, fields }) {
                         />
                     ))}
                     <button type="submit" style={styles.addButton} disabled={mutationAdd.isPending}>
-                        <Plus size={16} /> {mutationAdd.isPending ? "Adding..." : "Add Item"}
+                        <PlusIcon size={16} /> {mutationAdd.isPending ? t("management.adding") : t("management.addItem")}
                     </button>
                 </form>
-                {mutationAdd.isError && <p style={{ color: "red" }}>Error adding item</p>}
+                {mutationAdd.isError && <p style={{ color: "red" }}>{t("management.errorAdding")}</p>}
             </div>
 
             <div style={styles.grid}>
@@ -195,10 +371,10 @@ function MetadataSection({ type, title, icon: Icon, fields }) {
                                     ))}
                                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                                         <button type="submit" style={{ ...styles.btnIcon, color: '#22c55e' }} title="Save">
-                                            <Check size={18} />
+                                            <CheckIcon size={18} />
                                         </button>
                                         <button type="button" onClick={cancelEdit} style={{ ...styles.btnIcon, color: '#ef4444' }} title="Cancel">
-                                            <X size={18} />
+                                            <CancelIcon size={18} />
                                         </button>
                                     </div>
                                 </form>
@@ -214,18 +390,18 @@ function MetadataSection({ type, title, icon: Icon, fields }) {
                                             style={styles.actionButton}
                                             title="Edit"
                                         >
-                                            <Pencil size={16} />
+                                            <EditIcon size={16} />
                                         </button>
                                         <button
                                             onClick={() => {
-                                                if (window.confirm(`Delete ${item[nameKey]}?`)) {
+                                                if (window.confirm(`${t("management.deleteConfirm")} ${item[nameKey]}?`)) {
                                                     mutationDelete.mutate({ type, id: item[idKey] });
                                                 }
                                             }}
-                                            style={{ ...styles.deleteButton }} // Fixed style ref
+                                            style={{ ...styles.deleteButton }}
                                             title="Delete"
                                         >
-                                            <Trash2 size={16} />
+                                            <DeleteIcon size={16} />
                                         </button>
                                     </div>
                                 </>
@@ -291,7 +467,7 @@ const styles = {
         padding: "1rem",
         width: "100%",
         border: "1px solid var(--accent-color)",
-        background: "rgba(99, 102, 241, 0.1)", // Light tint of accent
+        background: "rgba(99, 102, 241, 0.1)",
         color: "var(--accent-color)",
         borderRadius: "8px",
         cursor: "pointer",
@@ -317,9 +493,11 @@ const styles = {
         display: "flex",
         gap: "1rem",
         marginTop: "1rem",
+        flexWrap: "wrap",
     },
     input: {
         flex: 1,
+        minWidth: "150px",
         padding: "0.8rem",
         borderRadius: "6px",
         border: "1px solid var(--border-color)",
@@ -361,9 +539,6 @@ const styles = {
         padding: "0.5rem",
         borderRadius: "4px",
         transition: "background 0.2s",
-        "&:hover": {
-            background: "rgba(255, 255, 255, 0.1)",
-        }
     },
     btnIcon: {
         background: "transparent",
@@ -374,9 +549,6 @@ const styles = {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        "&:hover": {
-            background: "rgba(255, 255, 255, 0.1)",
-        }
     },
     deleteButton: {
         background: "transparent",
@@ -386,8 +558,5 @@ const styles = {
         padding: "0.5rem",
         borderRadius: "4px",
         transition: "background 0.2s",
-        "&:hover": {
-            background: "rgba(239, 68, 68, 0.1)",
-        },
     },
 };

@@ -34,7 +34,10 @@ export const getLogs = async (req, res) => {
 
         return {
           log_id: log.log_id,
+          machine_id: log.machine_id,
           machine: log.machine_id,
+          operator_id: log.operator_id,
+          supervisor_id: log.supervisor_id,
           operator: operator
             ? { name: operator.name, badge: operator.badge }
             : null,
@@ -51,6 +54,7 @@ export const getLogs = async (req, res) => {
           supervisor_scan_time: log.supervisor_scan_time,
           cycle_start_time: log.cycle_start_time,
           cycle_end_time: log.cycle_end_time,
+          business_date: logRepository.getBusinessDate(log.cycle_start_time)
         };
       })
       .sort(
@@ -124,21 +128,71 @@ export const getSessions = async (req, res) => {
     }
 
     if (startDate && endDate) {
-      const start = new Date(startDate).getTime();
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      const endTime = end.getTime();
-
       sessions = sessions.filter(s => {
-        const sessionStart = new Date(s.started_at).getTime();
-        return sessionStart >= start && sessionStart <= endTime;
+        const bDate = logRepository.getBusinessDate(s.started_at);
+        return bDate >= startDate && bDate <= endDate;
       });
     }
 
-    res.status(200).json(sessions);
+    const transformedSessions = sessions.map(s => ({
+      ...s,
+      business_date: logRepository.getBusinessDate(s.started_at)
+    }));
+
+    res.status(200).json(transformedSessions);
 
   } catch (error) {
     console.error("❌ getSessions error:", error);
     res.status(500).json({ error: "Failed to fetch sessions" });
+  }
+};
+
+/* ---------------- UPDATE LOG ---------------- */
+
+export const updateLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { machine, cycle_start_time, ...updatedData } = req.body;
+
+    if (!machine || !cycle_start_time) {
+      return res.status(400).json({ error: "Missing identifying fields (machine, cycle_start_time)" });
+    }
+
+    // Map machine to machine_id if that's how it's stored in filenames but data is machine
+    // Based on LogRepository.js, it expects machine_id
+    const success = await logRepository.updateLog(id, machine, cycle_start_time, updatedData);
+
+    if (success) {
+      res.status(200).json({ message: "Log updated successfully" });
+    } else {
+      res.status(404).json({ error: "Log not found" });
+    }
+  } catch (error) {
+    console.error("❌ updateLog error:", error);
+    res.status(500).json({ error: "Failed to update log" });
+  }
+};
+
+/* ---------------- DELETE LOG ---------------- */
+
+export const deleteLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { machine, cycle_start_time } = req.query; // Context passed via query params for DELETE
+
+    if (!machine || !cycle_start_time) {
+      return res.status(400).json({ error: "Missing identifying fields (machine, cycle_start_time)" });
+    }
+
+    const success = await logRepository.deleteLog(id, machine, cycle_start_time);
+
+    if (success) {
+      res.status(200).json({ message: "Log deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Log not found" });
+    }
+  } catch (error) {
+    console.error("❌ deleteLog error:", error);
+    res.status(500).json({ error: "Failed to delete log" });
   }
 };

@@ -4,28 +4,37 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = process.env.DATA_PATH || path.resolve(__dirname, "../data");
+import { DATA_DIR } from "../config/config.js";
 const OUTPUT_FILE = path.join(DATA_DIR, "machine_sessions.json");
 
+const getBusinessDate = (d) => {
+    const date = new Date(d);
+    const shifted = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    return shifted.toISOString().split("T")[0];
+};
+
+const getShift = (d) => {
+    const hour = new Date(d).getUTCHours();
+    if (hour >= 21 || hour < 5) return "Shift1";
+    if (hour >= 5 && hour < 13) return "Shift2";
+    return "Shift3";
+};
+
 async function generateSessions() {
-    console.log("🚀 Starting Session Generation...");
+    console.log("🚀 Starting Refined Session Generation...");
 
     try {
         const entries = await fs.readdir(DATA_DIR, { withFileTypes: true });
         const machineDirs = entries.filter(e => e.isDirectory() && e.name.startsWith("machine_"));
 
-        let allSessions = [];
-        let sessionIdCounter = 1;
-
-        // Load operators to get badges
         const operatorsPath = path.join(DATA_DIR, "operators.json");
         let operatorsMap = {};
         try {
             const ops = JSON.parse(await fs.readFile(operatorsPath, "utf-8"));
             ops.forEach(op => operatorsMap[op.operator_id] = op.badge);
-        } catch (e) {
-            console.warn("⚠️ Could not load operators.json, badges might be missing.");
-        }
+        } catch (e) { }
+
+        const globalGroups = {}; // opId_bizDate -> { machine_id, shift, start, end }
 
         for (const dir of machineDirs) {
             const machineId = parseInt(dir.name.split("_")[1]);
@@ -34,65 +43,53 @@ async function generateSessions() {
 
             for (const file of files) {
                 if (!file.endsWith(".json")) continue;
-
                 const filePath = path.join(dirPath, file);
                 const content = await fs.readFile(filePath, "utf-8");
                 let logs = [];
-
-                try {
-                    logs = JSON.parse(content);
-                } catch (e) {
-                    continue;
-                }
-
-                if (!logs.length) continue;
-
-                // Group by Operator
-                const operatorGroups = {}; // ID -> { minStart, maxEnd }
+                try { logs = JSON.parse(content); } catch (e) { continue; }
 
                 logs.forEach(log => {
-                    const opId = log.operator_id;
-                    if (!opId) return;
+                    if (!log.operator_id) return;
+                    const bizDate = getBusinessDate(log.cycle_start_time);
+                    const shift = getShift(log.cycle_start_time);
+                    const key = `${log.operator_id}_${bizDate}`;
 
-                    if (!operatorGroups[opId]) {
-                        operatorGroups[opId] = {
-                            start: log.cycle_start_time,
-                            end: log.cycle_end_time
+                    if (!globalGroups[key]) {
+                        globalGroups[key] = {
+                            machine_id: machineId,
+                            operator_id: parseInt(log.operator_id),
+                            shift: shift,
+                            started_at: log.cycle_start_time,
+                            ended_at: log.cycle_end_time || log.cycle_start_time
                         };
                     } else {
-                        // Update min start
-                        if (log.cycle_start_time && new Date(log.cycle_start_time) < new Date(operatorGroups[opId].start)) {
-                            operatorGroups[opId].start = log.cycle_start_time;
+                        // Merge logic
+                        if (new Date(log.cycle_start_time) < new Date(globalGroups[key].started_at)) {
+                            globalGroups[key].started_at = log.cycle_start_time;
                         }
-                        // Update max end
-                        if (log.cycle_end_time && new Date(log.cycle_end_time) > new Date(operatorGroups[opId].end)) {
-                            operatorGroups[opId].end = log.cycle_end_time;
+                        if (log.cycle_end_time && new Date(log.cycle_end_time) > new Date(globalGroups[key].ended_at)) {
+                            globalGroups[key].ended_at = log.cycle_end_time;
+                        } else if (new Date(log.cycle_start_time) > new Date(globalGroups[key].ended_at)) {
+                            globalGroups[key].ended_at = log.cycle_start_time;
                         }
                     }
                 });
-
-                // Create Sessions
-                Object.entries(operatorGroups).forEach(([opIdStr, times]) => {
-                    const opId = parseInt(opIdStr);
-                    allSessions.push({
-                        session_id: sessionIdCounter++,
-                        machine_id: machineId,
-                        operator_id: opId,
-                        badge: operatorsMap[opId] || "UNKNOWN",
-                        shift: "Shift1", // Placeholder, could infer from time
-                        started_at: times.start,
-                        last_heartbeat: times.end, // Assuming active until last cycle
-                        ended_at: times.end
-                    });
-                });
             }
         }
+
+        let sessionIdCounter = 1;
+        const allSessions = Object.values(globalGroups).map(g => ({
+            session_id: sessionIdCounter++,
+            ...g,
+            badge: operatorsMap[g.operator_id] || "UNKNOWN",
+            last_heartbeat: g.ended_at
+        }));
 
         // Sort by date desc
         allSessions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
 
         await fs.writeFile(OUTPUT_FILE, JSON.stringify(allSessions, null, 2));
-        console.log(`🎉 Generated ${allSessions.length} sessions in machine_sessions.json`);
+        console.log(`🎉 Generated ${allSessions.length} total sessions in machine_sessions.json`);
 
     } catch (error) {
         console.error("❌ Generation Failed:", error);

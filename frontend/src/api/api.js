@@ -23,3 +23,23 @@ export const fetchSessions = async ({ queryKey }) => {
   const res = await api.get("/logs/sessions", { params });
   return res.data;
 };
+export const deleteLog = async ({ id, machine, cycle_start_time }) => {
+  const res = await api.delete(`/logs/${id}`, {
+    params: { machine, cycle_start_time }
+  });
+  return res.data;
+};
+
+export const updateLog = async ({ id, machine, cycle_start_time, ...data }) => {
+  const res = await api.put(`/logs/${id}`, {
+    machine,
+    cycle_start_time,
+    ...data
+  });
+  return res.data;
+};
+
+export const fetchMachines = async () => {
+  const res = await api.get("/metadata/machines");
+  return res.data;
+};

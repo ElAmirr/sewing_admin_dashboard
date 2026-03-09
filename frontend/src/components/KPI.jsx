@@ -1,7 +1,10 @@
 import React, { useMemo } from "react";
 import { formatDistanceStrict } from "date-fns";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function KPI({ logs, sessions }) {
+    const { t } = useLanguage();
+
     const metrics = useMemo(() => {
         // --- Logs Metrics ---
         let totalResponseTime = 0;
@@ -13,11 +16,23 @@ export default function KPI({ logs, sessions }) {
 
         const operatorStats = {};
         const supervisorStats = {};
+        let noneCount = 0;
+        let virtualTotal = 0;
 
-        if (logs && logs.length > 0) {
-            logs.forEach((log) => {
-                if (log.status === "OK") okCount++;
-                if (log.status === "DELAY") delayCount++;
+        const getShift = (dateStr) => {
+            const h = new Date(dateStr).getHours();
+            if (h >= 21 || h < 5) return "shift1";
+            if (h >= 5 && h < 13) return "shift2";
+            if (h >= 13 && h < 21) return "shift3";
+            return "unknown";
+        };
+
+        const processedLogs = logs ? [...logs] : [];
+        if (processedLogs.length > 0) {
+            processedLogs.forEach((log) => {
+                const status = log.status?.toUpperCase();
+                if (status === "OK") okCount++;
+                else if (status === "DELAY") delayCount++;
 
                 if (log.supervisor_confirmation === "CONFIRMED" || log.supervisor_confirmation === "NOT_CONFIRMED") {
                     reviewedCount++;
@@ -37,7 +52,6 @@ export default function KPI({ logs, sessions }) {
                     }
                 }
 
-
                 if (log.operator) {
                     const name = log.operator.name || `ID ${log.operator_id || "?"}`;
                     if (!operatorStats[name]) {
@@ -51,12 +65,29 @@ export default function KPI({ logs, sessions }) {
             });
         }
 
+        if (sessions && sessions.length > 0) {
+            const sessionSlots = new Set();
+            sessions.forEach(s => {
+                if (!s.started_at) return;
+                const shift = getShift(s.started_at);
+                const key = `${s.operator_id}_${s.machine_id}_${shift}`;
+                sessionSlots.add(key);
+            });
+            virtualTotal = sessionSlots.size * 4;
+        } else {
+            virtualTotal = okCount + delayCount;
+        }
+        noneCount = Math.max(0, virtualTotal - okCount - delayCount);
+
         const avgResponseMs = responseCount > 0 ? totalResponseTime / responseCount : 0;
         const avgResponseStr = responseCount > 0 ? formatDistanceStrict(0, avgResponseMs) : "N/A";
         const supervisorActivity = logs.length > 0 ? ((reviewedCount / logs.length) * 100).toFixed(1) : "0.0";
         const credibilityScore = reviewedCount > 0 ? ((validCount / reviewedCount) * 100).toFixed(1) : "N/A";
-        const okRate = logs.length > 0 ? ((okCount / logs.length) * 100).toFixed(1) : "0.0";
-        const delayRate = logs.length > 0 ? ((delayCount / logs.length) * 100).toFixed(1) : "0.0";
+        const actualTotal = okCount + delayCount + noneCount;
+        const okRate = actualTotal > 0 ? ((okCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const delayRate = actualTotal > 0 ? ((delayCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const noneRate = actualTotal > 0 ? ((noneCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const totalComplianceRate = actualTotal > 0 ? (((okCount + delayCount) / actualTotal) * 100).toFixed(1) : "0.0";
 
         const rankedOperators = Object.values(operatorStats).sort((a, b) => b.total - a.total);
         const rankedSupervisors = Object.entries(supervisorStats).sort(([, a], [, b]) => b - a);
@@ -66,18 +97,15 @@ export default function KPI({ logs, sessions }) {
         let avgWorkHoursStr = "0h 0m";
 
         if (sessions && sessions.length > 0) {
-            // Unique Operators
             const uniqueOps = new Set(sessions.map(s => s.operator_id));
             activeOperatorsCount = uniqueOps.size;
 
-            // Total Hours
             const totalDurationMs = sessions.reduce((acc, s) => {
                 const start = new Date(s.started_at).getTime();
                 const end = new Date(s.ended_at).getTime();
                 return acc + (end - start);
             }, 0);
 
-            // Calculate Avg Work Hours
             if (activeOperatorsCount > 0) {
                 const avgDurationMs = totalDurationMs / activeOperatorsCount;
                 const h = Math.floor(avgDurationMs / (1000 * 60 * 60));
@@ -85,59 +113,83 @@ export default function KPI({ logs, sessions }) {
                 avgWorkHoursStr = `${h}h ${m}m`;
             }
 
-            // Calculate Machine Utilization Rate (%)
-            // Formula: (Total Session Duration / (Total Machines * Shift Duration)) * 100
-            // Assuming 8 machines and 8 hour shift
             const totalCapacityMs = 8 * 8 * 60 * 60 * 1000;
             machineUtilization = ((totalDurationMs / totalCapacityMs) * 100).toFixed(1);
         }
 
-
-
-        // Re-doing the operatorStats loop to include ID for better matching
         const richOperatorStats = {};
-        if (logs && logs.length > 0) {
-            logs.forEach(log => {
-                if (log.operator) {
-                    const id = log.operator.operator_id;
-                    const name = log.operator.name || `ID ${id}`;
-                    const key = id || name; // Prefer ID as key for stability, but we display Name
+        if (processedLogs.length > 0) {
+            processedLogs.forEach(log => {
+                const id = log.operator_id;
+                if (!id) return;
 
-                    if (!richOperatorStats[key]) {
-                        richOperatorStats[key] = {
-                            id: id,
-                            name: name,
-                            total: 0,
-                            ok: 0,
-                            delay: 0,
-                            confirmed: 0
-                        };
-                    }
-                    richOperatorStats[key].total++;
-                    if (log.status === "OK") richOperatorStats[key].ok++;
-                    if (log.status === "DELAY") richOperatorStats[key].delay++;
-                    if (log.supervisor_confirmation === "CONFIRMED") richOperatorStats[key].confirmed++;
+                const name = log.operator?.name || `Operator #${id}`;
+                const key = id;
+
+                if (!richOperatorStats[key]) {
+                    richOperatorStats[key] = {
+                        id,
+                        name,
+                        ok: 0,
+                        delay: 0,
+                        confirmed: 0
+                    };
                 }
+                const st = log.status?.toUpperCase();
+                if (st === "OK") richOperatorStats[key].ok++;
+                if (st === "DELAY") richOperatorStats[key].delay++;
+                if (log.supervisor_confirmation === "CONFIRMED") richOperatorStats[key].confirmed++;
             });
         }
 
-        let finalOperators = Object.values(richOperatorStats).sort((a, b) => b.total - a.total);
+        let finalOperators = Object.values(richOperatorStats);
 
-        // Map sessions to operators
         if (sessions) {
             finalOperators = finalOperators.map(op => {
                 const opSessions = sessions.filter(s => s.operator_id === op.id);
+
+                const machinesSet = new Set(opSessions.map(s => s.machine_id));
+                const machineCount = machinesSet.size;
+
+                const slots = new Set();
+                opSessions.forEach(s => {
+                    if (!s.started_at) return;
+                    const shift = getShift(s.started_at);
+                    slots.add(`${s.machine_id}_${shift}`);
+                });
+                const virtual = slots.size * 4;
+                const actual = op.ok + op.delay;
+                const none = Math.max(0, virtual - actual);
+
                 const duration = opSessions.reduce((acc, s) => {
                     const start = new Date(s.started_at).getTime();
-                    const end = new Date(s.ended_at).getTime();
-                    return acc + (end - start);
+                    const end = s.ended_at ? new Date(s.ended_at).getTime() : start;
+                    return acc + Math.max(0, end - start);
                 }, 0);
-
                 const h = Math.floor(duration / (1000 * 60 * 60));
                 const m = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-                return { ...op, workingTime: `${h}h ${m}m` };
+
+                return { ...op, virtual, actual, none, machineCount, workingTime: `${h}h ${m}m` };
             });
+        } else {
+            finalOperators = finalOperators.map(op => ({
+                ...op,
+                virtual: op.ok + op.delay,
+                actual: op.ok + op.delay,
+                none: 0,
+                machineCount: 1,
+                workingTime: "—"
+            }));
         }
+
+        finalOperators.sort((a, b) => {
+            const ratioA = a.virtual > 0 ? a.actual / a.virtual : 0;
+            const ratioB = b.virtual > 0 ? b.actual / b.virtual : 0;
+
+            if (ratioB !== ratioA) return ratioB - ratioA;
+            if (b.confirmed !== a.confirmed) return b.confirmed - a.confirmed;
+            return b.ok - a.ok;
+        });
 
         return {
             avgResponseStr,
@@ -145,130 +197,130 @@ export default function KPI({ logs, sessions }) {
             credibilityScore,
             okRate,
             delayRate,
+            noneRate,
+            totalComplianceRate,
             totalLogs: logs ? logs.length : 0,
-            statusBreakdown: { ok: okCount, delay: delayCount },
-            topOperator: finalOperators[0] || { name: "-", total: 0 },
+            virtualTotal,
+            statusBreakdown: { ok: okCount, delay: delayCount, none: noneCount },
+            topOperator: finalOperators[0] ? { ...finalOperators[0], display: `${finalOperators[0].actual} / ${finalOperators[0].virtual}` } : { name: "-", display: "0 / 0" },
             topSupervisor: rankedSupervisors[0] || ["-", 0],
             allOperators: finalOperators,
             sessionMetrics: {
-                activeOperators: activeOperatorsCount,
-                avgWorkHours: avgWorkHoursStr,
-                machineUtilization
+                activeOperators: activeOperatorsCount
             }
         };
     }, [logs, sessions]);
 
-    // Only render loading if absolutely no data structure, but metrics will always return object now.
     if (!metrics) {
-        return <div style={{ padding: "2rem" }}>Loading...</div>;
+        return <div style={{ padding: "2rem" }}>{t("status.loading")}</div>;
     }
 
     return (
         <div style={styles.container}>
             <div style={styles.grid}>
-                {/* Session Stats */}
                 <Card
-                    title="Active Operators"
+                    title={t("kpi.activeOperators")}
                     value={metrics.sessionMetrics.activeOperators}
                     color="#4ade80"
-                    hint="Number of unique operators with active sessions today."
+                    hint={t("kpi.activeOperatorsHint")}
                 />
                 <Card
-                    title="Avg Work Hours"
-                    value={metrics.sessionMetrics.avgWorkHours}
-                    color="#fb923c"
-                    hint="Average duration of operator sessions today."
-                />
-                <Card
-                    title="Machine Utilization"
-                    value={`${metrics.sessionMetrics.machineUtilization}%`}
-                    color="#facc15"
-                    hint="Percentage of total capacity (8 machines * 8h shift) used today."
-                />
-
-                {/* KPI Cards */}
-                <Card
-                    title="Supervisor Activity"
+                    title={t("kpi.supervisorActivity")}
                     value={`${metrics.supervisorActivity}%`}
                     color="#60a5fa"
-                    hint="Percentage of total logs reviewed by a supervisor (Confirmed or Not Confirmed)."
+                    hint={t("kpi.supervisorActivityHint")}
                 />
                 <Card
-                    title="Operator Credibility"
+                    title={t("kpi.operatorCredibility")}
                     value={`${metrics.credibilityScore}%`}
                     color="#a78bfa"
-                    hint="Percentage of REVIEWED logs that were CONFIRMED. 100% = All reviewed statuses were correct."
+                    hint={t("kpi.operatorCredibilityHint")}
                 />
                 <Card
-                    title="Operator Compliance (OK)"
+                    title={t("kpi.complianceOk")}
                     value={`${metrics.okRate}%`}
                     color="#f472b6"
-                    hint="Percentage of total cycles marked as OK."
+                    hint={t("kpi.complianceOkHint")}
                 />
                 <Card
-                    title="Operator Compliance (DELAY)"
+                    title={t("kpi.complianceDelay")}
                     value={`${metrics.delayRate}%`}
-                    color="#22c55e"
-                    hint="Percentage of total cycles marked as DELAY."
+                    color="#fb923c"
+                    hint={t("kpi.complianceDelayHint")}
                 />
                 <Card
-                    title="Avg Supervisor Response"
+                    title={t("kpi.totalCompliance")}
+                    value={`${metrics.totalComplianceRate}%`}
+                    color="#38bdf8"
+                    hint={t("kpi.totalComplianceHint")}
+                />
+                <Card
+                    title={t("kpi.lowActivity")}
+                    value={`${metrics.noneRate}%`}
+                    color="#94a3b8"
+                    hint={t("kpi.lowActivityHint")}
+                />
+                <Card
+                    title={t("kpi.avgResponse")}
                     value={metrics.avgResponseStr}
                     color="#0ea5e9"
-                    hint="Average time taken for supervisor to scan badge after operator press."
+                    hint={t("kpi.avgResponseHint")}
                 />
 
                 <div style={styles.wideCard}>
-                    <h3>🏆 Top Performers</h3>
+                    <h3>{t("kpi.topPerformers")}</h3>
                     <div style={{ display: "flex", justifyContent: "space-around", marginTop: "1rem" }}>
                         <div>
-                            <div style={styles.subLabel}>Top Operator</div>
+                            <div style={styles.subLabel}>{t("kpi.topOperator")}</div>
                             <div style={styles.performer}>{metrics.topOperator.name}</div>
-                            <div style={styles.subVal}>{metrics.topOperator.total} cycles</div>
+                            <div style={styles.subVal}>
+                                {metrics.topOperator.display} {t("kpi.changes")}
+                            </div>
                         </div>
                         <div style={{ borderLeft: "1px solid #333" }}></div>
                         <div>
-                            <div style={styles.subLabel}>Most Active Supervisor</div>
+                            <div style={styles.subLabel}>{t("kpi.mostActiveSupervisor")}</div>
                             <div style={styles.performer}>{metrics.topSupervisor[0]}</div>
-                            <div style={styles.subVal}>{metrics.topSupervisor[1]} confirmations</div>
+                            <div style={styles.subVal}>{metrics.topSupervisor[1]} {t("kpi.confirmations")}</div>
                         </div>
                     </div>
                 </div>
 
                 <div style={styles.wideCard}>
-                    <h3>⚙️ Daily Overview</h3>
+                    <h3>{t("kpi.dailyOverview")}</h3>
                     <p style={{ textAlign: "center", fontSize: "1.1rem", marginTop: "10px" }}>
-                        Running Total: <strong style={{ color: "var(--text-primary)" }}>{metrics.totalLogs} Cycles</strong>
+                        {t("kpi.actualChanges")}: <strong style={{ color: "var(--text-primary)" }}>{metrics.totalLogs}</strong>
                     </p>
                     <div style={{ display: "flex", gap: "20px", marginTop: "10px", justifyContent: "center" }}>
-                        <div style={{ color: "#4ade80" }}>OK: {metrics.statusBreakdown.ok}</div>
-                        <div style={{ color: "orange" }}>DELAY: {metrics.statusBreakdown.delay}</div>
+                        <div style={{ color: "#4ade80" }}>{t("kpi.ok")}: {metrics.statusBreakdown.ok}</div>
+                        <div style={{ color: "orange" }}>{t("kpi.delay")}: {metrics.statusBreakdown.delay}</div>
+                        <div style={{ color: "#94a3b8" }}>{t("kpi.lowActivityNone")} : {metrics.statusBreakdown.none}</div>
                     </div>
                 </div>
             </div>
 
 
-            <h3 style={{ margin: "2rem 0 1rem 1rem", color: "var(--text-secondary)" }}>👷 Operator Performance Breakdown</h3>
+            <h3 style={{ margin: "2rem 0 1rem 1rem", color: "var(--text-secondary)" }}>{t("kpi.operatorBreakdown")}</h3>
             <div style={{ overflowX: "auto", padding: "0 1rem" }}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Operator</th>
-                            <th style={styles.th}>Working Time</th>
-                            <th style={styles.th}>Total Cycles</th>
-                            <th style={styles.th}>✅ OK</th>
-                            <th style={styles.th}>⚠️ Delay</th>
-                            <th style={styles.th}>👀 Sup. Confirmed</th>
+                            <th style={styles.th}>{t("kpi.operatorCol")}</th>
+                            <th style={styles.th}>{t("kpi.actualVirtual")}</th>
+                            <th style={{ ...styles.th, color: "#4ade80" }}>{t("kpi.okCol")}</th>
+                            <th style={{ ...styles.th, color: "#fb923c" }}>{t("kpi.delayCol")}</th>
+                            <th style={{ ...styles.th, color: "#94a3b8" }}>{t("kpi.noneCol")}</th>
+                            <th style={styles.th}>{t("kpi.confirmedCol")}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {metrics.allOperators.map((op, idx) => (
                             <tr key={idx} style={styles.tr}>
                                 <td style={styles.td}>{op.name}</td>
-                                <td style={styles.td}>{op.workingTime || "0h 0m"}</td>
-                                <td style={styles.td}>{op.total}</td>
+                                <td style={styles.td}>{op.actual} / {op.virtual}</td>
                                 <td style={{ ...styles.td, color: "#4ade80" }}>{op.ok}</td>
                                 <td style={{ ...styles.td, color: "#fb923c" }}>{op.delay}</td>
+                                <td style={{ ...styles.td, color: "#94a3b8" }}>{op.none}</td>
                                 <td style={{ ...styles.td, color: "#60a5fa" }}>{op.confirmed}</td>
                             </tr>
                         ))}

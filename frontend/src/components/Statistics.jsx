@@ -13,100 +13,104 @@ import {
     BarChart,
     Bar,
     Cell,
+    LabelList,
 } from "recharts";
 import { format, parseISO, isSameDay } from "date-fns";
+import { useLanguage } from "../context/LanguageContext";
 
-export default function Statistics({ logs, sessions }) {
+export default function Statistics({ logs, sessions, shift }) {
+    const { t } = useLanguage();
+
     const chartData = useMemo(() => {
         if (!logs || logs.length === 0) return [];
 
-        const dailyMap = {};
+        const SHIFT_LABEL = { shift1: "S1", shift2: "S2", shift3: "S3", unknown: "?" };
+        const SHIFT_FULL = { shift1: "Shift 1 (21-05)", shift2: "Shift 2 (05-13)", shift3: "Shift 3 (13-21)" };
 
-        // Group logs by day
-        logs.forEach((log) => {
-            if (!log.cycle_start_time) return;
+        const getShift = (dateStr) => {
+            const h = new Date(dateStr).getHours();
+            if (h >= 21 || h < 5) return "shift1";
+            if (h >= 5 && h < 13) return "shift2";
+            if (h >= 13 && h < 21) return "shift3";
+            return "unknown";
+        };
 
-            let dateKey;
-            try {
-                dateKey = format(parseISO(log.cycle_start_time), "yyyy-MM-dd");
-            } catch (e) {
-                return;
+        const slotMap = {};
+
+        logs.forEach(log => {
+            let dateKey = log.business_date;
+            if (!dateKey && log.cycle_start_time) {
+                try { dateKey = format(parseISO(log.cycle_start_time), "yyyy-MM-dd"); }
+                catch (e) { return; }
             }
+            if (!dateKey) return;
 
-            if (!dailyMap[dateKey]) {
-                dailyMap[dateKey] = {
+            const shiftKey = getShift(log.cycle_start_time || "");
+            const key = `${dateKey}_${shiftKey}`;
+
+            if (!slotMap[key]) {
+                slotMap[key] = {
                     date: dateKey,
-                    displayDate: format(parseISO(log.cycle_start_time), "MMM d"),
-                    ok: 0,
-                    delay: 0,
-                    reviewed: 0,
-                    confirmed: 0,
-                    totalCycles: 0,
-                    totalSessionMs: 0,
+                    shift: shiftKey,
+                    displayDate: format(parseISO(dateKey), "MMM d"),
+                    label: `${format(parseISO(dateKey), "MMM d")} ${SHIFT_LABEL[shiftKey] || ""}`,
+                    shiftFull: SHIFT_FULL[shiftKey] || shiftKey,
+                    ok: 0, delay: 0, none: 0, virtual: 0,
+                    reviewed: 0, confirmed: 0, totalSessionMs: 0,
                     activeOperators: new Set(),
+                    sessionSlots: new Set(),
                 };
             }
+            const slot = slotMap[key];
+            const status = log.status?.toUpperCase();
+            if (status === "OK") slot.ok++;
+            else if (status === "DELAY") slot.delay++;
 
-            const day = dailyMap[dateKey];
-            day.totalCycles++;
-            if (log.status === "OK") day.ok++;
-            if (log.status === "DELAY") day.delay++;
-
-            if (
-                log.supervisor_confirmation === "CONFIRMED" ||
-                log.supervisor_confirmation === "NOT_CONFIRMED"
-            ) {
-                day.reviewed++;
-                if (log.supervisor_confirmation === "CONFIRMED") day.confirmed++;
+            if (log.supervisor_confirmation === "CONFIRMED" || log.supervisor_confirmation === "NOT_CONFIRMED") {
+                slot.reviewed++;
+                if (log.supervisor_confirmation === "CONFIRMED") slot.confirmed++;
             }
-            if (log.operator_id) day.activeOperators.add(log.operator_id);
+            if (log.operator_id) slot.activeOperators.add(log.operator_id);
         });
 
-        // Match sessions by day
         if (sessions) {
-            sessions.forEach((session) => {
-                if (!session.started_at || !session.ended_at) return;
-
-                let dateKey;
-                try {
-                    dateKey = format(parseISO(session.started_at), "yyyy-MM-dd");
-                } catch (e) {
-                    return;
-                }
-
-                if (dailyMap[dateKey]) {
-                    const start = new Date(session.started_at).getTime();
-                    const end = new Date(session.ended_at).getTime();
-                    dailyMap[dateKey].totalSessionMs += end - start;
+            sessions.forEach(session => {
+                if (!session.started_at) return;
+                const dateKey = session.business_date ||
+                    format(parseISO(session.started_at), "yyyy-MM-dd");
+                const shiftKey = getShift(session.started_at);
+                const key = `${dateKey}_${shiftKey}`;
+                if (!slotMap[key]) return;
+                const slotKey = `${session.operator_id}_${session.machine_id}`;
+                slotMap[key].sessionSlots.add(slotKey);
+                if (session.ended_at) {
+                    const s = new Date(session.started_at).getTime();
+                    const e = new Date(session.ended_at).getTime();
+                    if (e > s) slotMap[key].totalSessionMs += e - s;
                 }
             });
         }
 
-        // Convert to array and calculate final daily metrics
-        return Object.values(dailyMap)
-            .sort((a, b) => a.date.localeCompare(b.date))
-            .map((day) => {
-                const total = day.totalCycles || 1;
-                const totalReviewed = day.reviewed || 1;
+        Object.values(slotMap).forEach(slot => {
+            slot.virtual = slot.sessionSlots.size * 4;
+            slot.none = Math.max(0, slot.virtual - slot.ok - slot.delay);
+        });
 
-                // Machine Utilization: (Total Session Duration / (8 machines * 8 hour shift)) * 100
-                const capacityMs = 8 * 8 * 60 * 60 * 1000;
-                const utilization = ((day.totalSessionMs / capacityMs) * 100).toFixed(1);
-
-                // Avg Work Hours per Operator
-                const opsCount = day.activeOperators.size || 1;
-                const avgWorkHours = (day.totalSessionMs / (1000 * 60 * 60 * opsCount)).toFixed(1);
-
+        return Object.values(slotMap)
+            .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift))
+            .map(slot => {
+                const total = slot.virtual || (slot.ok + slot.delay) || 1;
                 return {
-                    ...day,
-                    okRate: parseFloat(((day.ok / total) * 100).toFixed(1)),
-                    delayRate: parseFloat(((day.delay / total) * 100).toFixed(1)),
-                    supervisorActivity: parseFloat(((day.reviewed / total) * 100).toFixed(1)),
-                    credibilityScore: day.reviewed > 0
-                        ? parseFloat(((day.confirmed / day.reviewed) * 100).toFixed(1))
+                    ...slot,
+                    totalChanges: slot.ok + slot.delay,
+                    noneTotal: slot.none,
+                    okRate: parseFloat(((slot.ok / total) * 100).toFixed(1)),
+                    delayRate: parseFloat(((slot.delay / total) * 100).toFixed(1)),
+                    noneRate: parseFloat(((slot.none / total) * 100).toFixed(1)),
+                    supervisorActivity: parseFloat(((slot.reviewed / (slot.ok + slot.delay || 1)) * 100).toFixed(1)),
+                    credibilityScore: slot.reviewed > 0
+                        ? parseFloat(((slot.confirmed / slot.reviewed) * 100).toFixed(1))
                         : 0,
-                    machineUtilization: parseFloat(utilization),
-                    avgWorkHours: parseFloat(avgWorkHours),
                 };
             });
     }, [logs, sessions]);
@@ -114,125 +118,113 @@ export default function Statistics({ logs, sessions }) {
     if (!logs || logs.length === 0) {
         return (
             <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
-                No historical data found for this month.
+                {t("status.noData")}
             </div>
         );
     }
 
     return (
         <div style={styles.container}>
-            <h2 style={styles.title}>Monthly Performance Trends</h2>
+            <h2 style={styles.title}>{t("statistics.monthlyTrends")}</h2>
 
             <div style={styles.chartGrid}>
-                {/* Chart 1: Operator Compliance (Stacked Area) */}
+                {/* Chart 1: Work Activity */}
                 <div style={styles.chartCard}>
-                    <h3>Operator Compliance (OK vs DELAY)</h3>
-                    <p style={styles.chartSub}>Daily count of OK and DELAY cycles</p>
-                    <div style={{ height: 300 }}>
+                    <h3>{t("statistics.workActivity")}</h3>
+                    <div style={{ height: 320 }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
+                            <BarChart data={chartData} barCategoryGap="20%" barGap={2}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis dataKey="displayDate" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                                <XAxis
+                                    dataKey="label"
+                                    stroke="var(--text-secondary)"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    interval={0}
+                                />
+                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
                                 <Tooltip
                                     contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
-                                    itemStyle={{ fontSize: "12px" }}
+                                    formatter={(value, name) => [`${value}%`, name]}
+                                    labelFormatter={(label) => {
+                                        const item = chartData.find(d => d.label === label);
+                                        return item ? `${item.displayDate} — ${item.shiftFull}` : label;
+                                    }}
                                 />
                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
-                                <Area type="monotone" dataKey="ok" name="OK" stackId="1" stroke="#4ade80" fill="#4ade80" fillOpacity={0.3} />
-                                <Area type="monotone" dataKey="delay" name="DELAY" stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.3} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Chart 2: Supervisor Activity & Credibility (Line) */}
-                <div style={styles.chartCard}>
-                    <h3>Supervisor Activity & Credibility (%)</h3>
-                    <p style={styles.chartSub}>Compliance rates and review efficiency</p>
-                    <div style={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis dataKey="displayDate" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip
-                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
-                                />
-                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
-                                <Line type="monotone" dataKey="supervisorActivity" name="Sup. Activity" stroke="#60a5fa" strokeWidth={3} dot={{ fill: "#60a5fa" }} activeDot={{ r: 8 }} />
-                                <Line type="monotone" dataKey="credibilityScore" name="Credibility" stroke="#a78bfa" strokeWidth={3} dot={{ fill: "#a78bfa" }} activeDot={{ r: 8 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Chart 3: Machine Utilization (%) */}
-                <div style={styles.chartCard}>
-                    <h3>Machine Utilization Rate (%)</h3>
-                    <p style={styles.chartSub}>Percentage of capacity used per day</p>
-                    <div style={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis dataKey="displayDate" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip
-                                    cursor={{ fill: "rgba(255,255,255,0.05)" }}
-                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
-                                />
-                                <Bar dataKey="machineUtilization" name="Utilization %" radius={[4, 4, 0, 0]}>
-                                    {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.machineUtilization > 50 ? "#22c55e" : "#fb923c"} />
-                                    ))}
+                                <Bar dataKey="okRate" name={t("statistics.okBar")} stackId="active" fill="#4caf50" radius={[0, 0, 0, 0]}>
+                                    <LabelList dataKey="okRate" position="inside" style={{ fill: "#fff", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v >= 8 ? `${v}%` : ""} />
+                                </Bar>
+                                <Bar dataKey="delayRate" name={t("statistics.delayBar")} stackId="active" fill="#ff9800" radius={[0, 0, 0, 0]}>
+                                    <LabelList dataKey="delayRate" position="inside" style={{ fill: "#fff", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v >= 8 ? `${v}%` : ""} />
+                                </Bar>
+                                <Bar dataKey="noneRate" name={t("statistics.lowActivityBar")} fill="#f44336" radius={[4, 4, 0, 0]}>
+                                    <LabelList dataKey="noneRate" position="top" style={{ fill: "var(--text-primary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v > 0 ? `${v}%` : ""} />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Chart 4: Average Work Time (Hours) */}
+                {/* Chart 2: Supervisor Activity & Credibility */}
                 <div style={styles.chartCard}>
-                    <h3>Avg Operator Work Time (Hours)</h3>
-                    <p style={styles.chartSub}>Average shift duration per operator</p>
+                    <h3>{t("statistics.supActivity")}</h3>
                     <div style={{ height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
+                            <BarChart data={chartData} barCategoryGap="20%" barGap={2}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis dataKey="displayDate" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis unit="h" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                                <XAxis
+                                    dataKey="label"
+                                    stroke="var(--text-secondary)"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    interval={0}
+                                />
+                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
                                 <Tooltip
                                     contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
+                                    formatter={(value, name) => [`${value}%`, name]}
+                                    labelFormatter={(label) => {
+                                        const item = chartData.find(d => d.label === label);
+                                        return item ? `${item.displayDate} — ${item.shiftFull}` : label;
+                                    }}
                                 />
-                                <Line type="stepAfter" dataKey="avgWorkHours" name="Avg Hours" stroke="#0ea5e9" strokeWidth={3} dot={false} />
-                            </LineChart>
+                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
+                                <Bar dataKey="supervisorActivity" name={t("statistics.supActivityBar")} fill="#4caf50" radius={[4, 4, 0, 0]}>
+                                    <LabelList dataKey="supervisorActivity" position="top" style={{ fill: "var(--text-secondary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => `${v}%`} />
+                                </Bar>
+                                <Bar dataKey="credibilityScore" name={t("statistics.credibilityBar")} fill="#ffc107" radius={[4, 4, 0, 0]}>
+                                    <LabelList dataKey="credibilityScore" position="top" style={{ fill: "var(--text-secondary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => `${v}%`} />
+                                </Bar>
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
+
             </div>
 
-            <h3 style={{ margin: "2rem 0 1rem 1rem", color: "var(--text-secondary)" }}>📋 Daily Performance Breakdown</h3>
+            <h3 style={{ margin: "2rem 0 1rem 1rem", color: "var(--text-secondary)" }}>{t("statistics.dailyBreakdown")}</h3>
             <div style={{ overflowX: "auto", paddingBottom: "2rem" }}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Date</th>
-                            <th style={styles.th}>Total Cycles</th>
-                            <th style={styles.th}>OK %</th>
-                            <th style={styles.th}>Delay %</th>
-                            <th style={styles.th}>Utilization %</th>
-                            <th style={styles.th}>Avg Work Time</th>
+                            <th style={styles.th}>{t("statistics.date")}</th>
+                            <th style={styles.th}>{t("statistics.changesActualVirtual")}</th>
+                            <th style={styles.th}>{t("statistics.okPercent")}</th>
+                            <th style={styles.th}>{t("statistics.delayPercent")}</th>
+                            <th style={styles.th}>{t("statistics.nonePercent")}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {chartData.map((day) => (
                             <tr key={day.date} style={styles.tr}>
                                 <td style={styles.td}>{day.date}</td>
-                                <td style={styles.td}>{day.totalCycles}</td>
+                                <td style={styles.td}>{day.totalChanges} / {day.virtual}</td>
                                 <td style={{ ...styles.td, color: "#4ade80" }}>{day.okRate}%</td>
                                 <td style={{ ...styles.td, color: "#f472b6" }}>{day.delayRate}%</td>
-                                <td style={{ ...styles.td, color: "#fb923c" }}>{day.machineUtilization}%</td>
-                                <td style={styles.td}>{day.avgWorkHours}h</td>
+                                <td style={{ ...styles.td, color: "#94a3b8" }}>{day.noneRate}%</td>
                             </tr>
                         ))}
                     </tbody>
