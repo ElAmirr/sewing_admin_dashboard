@@ -74,12 +74,12 @@ function createWindow() {
 }
 
 function startBackend() {
-    console.log("Starting backend from:", serverScript);
-    console.log("Data Path:", dataPath);
+    console.log("--- Starting Backend ---");
+    console.log("Script:", serverScript);
+    console.log("CWD:", backendPath);
+    console.log("Data:", dataPath);
+    console.log("Node Runtime:", process.execPath);
 
-    // Spawn node process for backend
-    // We pass DATA_PATH environment variable
-    // In production, we use the Electron executable as the node runtime
     const env = {
         ...process.env,
         DATA_PATH: dataPath,
@@ -87,22 +87,30 @@ function startBackend() {
         ELECTRON_RUN_AS_NODE: "1"
     };
 
-    backendProcess = spawn(process.execPath, [serverScript], {
-        env,
-        cwd: backendPath,
-    });
+    try {
+        backendProcess = spawn(process.execPath, [serverScript], {
+            env,
+            cwd: backendPath,
+        });
 
-    backendProcess.stdout.on("data", (data) => {
-        console.log(`Backend stdout: ${data}`);
-    });
+        backendProcess.stdout.on("data", (data) => {
+            console.log(`[Backend STDOUT]: ${data}`);
+        });
 
-    backendProcess.stderr.on("data", (data) => {
-        console.error(`Backend stderr: ${data}`);
-    });
+        backendProcess.stderr.on("data", (data) => {
+            console.error(`[Backend STDERR]: ${data}`);
+        });
 
-    backendProcess.on("close", (code) => {
-        console.log(`Backend process exited with code ${code}`);
-    });
+        backendProcess.on("error", (err) => {
+            console.error(`[Backend SPAWN ERROR]:`, err);
+        });
+
+        backendProcess.on("close", (code) => {
+            console.log(`[Backend PROCESS EXIT] code: ${code}`);
+        });
+    } catch (err) {
+        console.error("Failed to spawn backend process:", err);
+    }
 }
 
 app.whenReady().then(() => {

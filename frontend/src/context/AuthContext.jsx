@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
+import { api } from "../api/api";
 
 const AuthContext = createContext();
 
@@ -9,21 +10,15 @@ export const AuthProvider = ({ children }) => {
     });
 
     const login = useCallback(async (username, password) => {
-        const res = await fetch("http://localhost:3001/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || "Login failed");
+        try {
+            const res = await api.post("/auth/login", { username, password });
+            const userData = res.data;
+            setUser(userData);
+            sessionStorage.setItem("user", JSON.stringify(userData));
+            return userData;
+        } catch (err) {
+            throw new Error(err.response?.data?.error || "Login failed");
         }
-
-        const userData = await res.json();
-        setUser(userData);
-        sessionStorage.setItem("user", JSON.stringify(userData));
-        return userData;
     }, []);
 
     const logout = useCallback(() => {

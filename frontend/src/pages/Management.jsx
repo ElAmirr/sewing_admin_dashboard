@@ -13,73 +13,51 @@ import {
     CancelIcon,
 } from "../components/Icons";
 import { Shield } from "lucide-react";
+import { api } from "../api/api";
 
 // API Helpers
-const API_BASE = "http://localhost:3001/api";
-
 const fetchMetadata = async (type) => {
-    const res = await fetch(`${API_BASE}/metadata/${type}`);
-    if (!res.ok) throw new Error("Failed to fetch");
-    return res.json();
+    const res = await api.get(`/metadata/${type}`);
+    return res.data;
 };
 
 const addMetadata = async ({ type, data }) => {
-    const res = await fetch(`${API_BASE}/metadata/${type}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error("Failed to add");
-    return res.json();
+    const res = await api.post(`/metadata/${type}`, data);
+    return res.data;
 };
 
 const deleteMetadata = async ({ type, id }) => {
-    const res = await fetch(`${API_BASE}/metadata/${type}/${id}`, {
-        method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete");
-    return res.json();
+    const res = await api.delete(`/metadata/${type}/${id}`);
+    return res.data;
 };
 
 const updateMetadata = async ({ type, id, data }) => {
-    const res = await fetch(`${API_BASE}/metadata/${type}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error("Failed to update");
-    return res.json();
+    const res = await api.put(`/metadata/${type}/${id}`, data);
+    return res.data;
 };
 
 // Auth API helpers
 const fetchUsers = async () => {
-    const res = await fetch(`${API_BASE}/auth/users`);
-    if (!res.ok) throw new Error("Failed to fetch users");
-    return res.json();
+    const res = await api.get("/auth/users");
+    return res.data;
 };
 
 const addAuthUser = async (data) => {
-    const res = await fetch(`${API_BASE}/auth/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to add user");
+    try {
+        const res = await api.post("/auth/users", data);
+        return res.data;
+    } catch (err) {
+        throw new Error(err.response?.data?.error || "Failed to add user");
     }
-    return res.json();
 };
 
 const deleteAuthUser = async (id) => {
-    const res = await fetch(`${API_BASE}/auth/users/${id}`, {
-        method: "DELETE",
-    });
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete user");
+    try {
+        const res = await api.delete(`/auth/users/${id}`);
+        return res.data;
+    } catch (err) {
+        throw new Error(err.response?.data?.error || "Failed to delete user");
     }
-    return res.json();
 };
 
 export default function Management() {

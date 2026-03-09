@@ -1,7 +1,17 @@
 import axios from "axios";
 
+const getBaseURL = () => {
+  // In packaged Electron apps, the protocol is 'file:'
+  // We must use absolute URLs because relative paths don't work with file://
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    return "http://127.0.0.1:3001/api";
+  }
+  // In development (Web or Electron), use relative path which is handled by Vite proxy
+  return "/api";
+};
+
 export const api = axios.create({
-  baseURL: "http://localhost:3001/api",
+  baseURL: getBaseURL(),
 });
 
 export const fetchLogs = async ({ queryKey }) => {
