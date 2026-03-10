@@ -6,10 +6,17 @@ import * as authController from "./controllers/auth.controller.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+console.log("--- Backend Initializing ---");
+console.log("Env NODE_ENV:", process.env.NODE_ENV);
+console.log("Env DATA_PATH:", process.env.DATA_PATH);
+console.log("__dirname:", __dirname);
 
 app.use(cors());
 app.use(express.json());
@@ -44,7 +51,12 @@ app.put("/api/metadata/machines/:id", metadataController.updateMachine);
 app.delete("/api/metadata/machines/:id", metadataController.deleteMachine);
 
 // Serve static files from the frontend/dist directory
-const frontendDistPath = path.join(__dirname, "../frontend/dist");
+// In packaged app, we might be running from app.asar.unpacked/backend
+// but frontend is in app.asar/frontend/dist
+const frontendDistPath = isDev
+  ? path.join(__dirname, "../frontend/dist")
+  : path.join(__dirname, "../frontend/dist").replace('app.asar.unpacked', 'app.asar');
+
 app.use(express.static(frontendDistPath));
 
 // Catch-all route to serve the frontend's index.html for any non-API requests

@@ -11,29 +11,47 @@
     "electron:build": "npm run frontend:build && electron-builder",
     "frontend:build": "cd frontend && npm run build"
   },
+  "type": "commonjs",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.10.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
+    "wait-on": "^9.0.3"
+  },
   "build": {
     "appId": "com.sewing.admin",
     "productName": "SewingAdminDashboard",
+    "asar": true,
+    "asarUnpack": [
+      "backend/**/*"
+    ],
     "directories": {
       "output": "dist"
     },
     "files": [
       "electron/**/*",
       "frontend/dist/**/*",
+      "backend/**/*",
       "package.json"
     ],
-    "extraResources": [
+    "extraFiles": [
+      "setting.json",
       {
-        "from": "backend",
-        "to": "backend",
+        "from": "data",
+        "to": "data",
         "filter": [
-          "**/*",
-          "!data/**/*"
+          "**/*"
         ]
       }
-    ],
-    "extraFiles": [
-      "setting.json"
     ],
     "win": {
       "target": [
@@ -43,24 +61,5 @@
     "linux": {
       "target": "AppImage"
     }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ElAmirr/sewing_admin_dashboard.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/ElAmirr/sewing_admin_dashboard/issues"
-  },
-  "homepage": "https://github.com/ElAmirr/sewing_admin_dashboard#readme",
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^40.2.1",
-    "electron-builder": "^26.7.0",
-    "wait-on": "^9.0.3"
   }
 }

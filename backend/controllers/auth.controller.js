@@ -1,16 +1,26 @@
-import fs from "fs/promises";
+import fsPromises from "fs/promises";
+import fs from "fs";
 import path from "path";
 import { DATA_DIR } from "../config/config.js";
 
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
 async function readUsers() {
-    const data = await fs.readFile(USERS_FILE, "utf8");
-    return JSON.parse(data);
+    try {
+        if (!fs.existsSync(USERS_FILE)) {
+            console.warn(`Users file not found at ${USERS_FILE}`);
+            return [];
+        }
+        const data = await fsPromises.readFile(USERS_FILE, "utf8");
+        return JSON.parse(data);
+    } catch (err) {
+        console.error("Error reading users file:", err);
+        return [];
+    }
 }
 
 async function writeUsers(users) {
-    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+    await fsPromises.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
 // POST /api/auth/login

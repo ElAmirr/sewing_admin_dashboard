@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV === "development";
 // In production, backend is likely inside 'resources' folder
 const backendPath = isDev
     ? path.join(__dirname, "../backend")
-    : path.join(process.resourcesPath, "backend");
+    : path.join(__dirname, "../backend").replace('app.asar', 'app.asar.unpacked');
 
 const serverScript = path.join(backendPath, "server.js");
 
@@ -44,6 +44,16 @@ if (!dataPath) {
     const userDataPath = app.getPath("userData");
     dataPath = path.join(userDataPath, "data");
     console.log(`Using default data path: ${dataPath}`);
+}
+
+// Ensure dataPath exists
+if (!fs.existsSync(dataPath)) {
+    try {
+        fs.mkdirSync(dataPath, { recursive: true });
+        console.log(`Created data directory at: ${dataPath}`);
+    } catch (err) {
+        console.error(`Failed to create data directory: ${err}`);
+    }
 }
 
 let mainWindow;
