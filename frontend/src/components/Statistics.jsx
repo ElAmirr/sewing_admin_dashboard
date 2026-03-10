@@ -83,16 +83,15 @@ export default function Statistics({ logs, sessions, shift }) {
                 if (!slotMap[key]) return;
                 const slotKey = `${session.operator_id}_${session.machine_id}`;
                 slotMap[key].sessionSlots.add(slotKey);
-                if (session.ended_at) {
-                    const s = new Date(session.started_at).getTime();
-                    const e = new Date(session.ended_at).getTime();
-                    if (e > s) slotMap[key].totalSessionMs += e - s;
-                }
+                const s = new Date(session.started_at).getTime();
+                const e = session.ended_at ? new Date(session.ended_at).getTime() : new Date().getTime();
+                if (e > s) slotMap[key].totalSessionMs += e - s;
             });
         }
 
         Object.values(slotMap).forEach(slot => {
-            slot.virtual = slot.sessionSlots.size * 4;
+            // 1 change per 2 hours
+            slot.virtual = Math.round(slot.totalSessionMs / (1000 * 60 * 60 * 2));
             slot.none = Math.max(0, slot.virtual - slot.ok - slot.delay);
         });
 

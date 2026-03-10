@@ -67,14 +67,20 @@ export default function KPI({ logs, sessions }) {
         }
 
         if (sessions && sessions.length > 0) {
-            const sessionSlots = new Set();
+            let totalExpectedChanges = 0;
+            const now = new Date().getTime();
+
             sessions.forEach(s => {
                 if (!s.started_at) return;
-                const shift = getShift(s.started_at);
-                const key = `${s.operator_id}_${s.machine_id}_${shift}`;
-                sessionSlots.add(key);
+                const start = new Date(s.started_at).getTime();
+                const end = s.ended_at ? new Date(s.ended_at).getTime() : now;
+
+                const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60));
+                // 1 change per 2 hours. Rounding to 2 decimal places to be precise 
+                // but we can round the final total at the end.
+                totalExpectedChanges += durationHours / 2;
             });
-            virtualTotal = sessionSlots.size * 4;
+            virtualTotal = Math.round(totalExpectedChanges);
         } else {
             virtualTotal = okCount + delayCount;
         }
