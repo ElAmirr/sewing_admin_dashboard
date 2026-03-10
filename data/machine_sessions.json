@@ -705,7 +705,7 @@
     "operator_id": 1,
     "shift": "Shift1",
     "started_at": "2026-03-04T21:00:00.000Z",
-    "ended_at": "2026-03-05T05:00:00.000Z",
+    "ended_at": "2026-03-05T01:00:00.000Z",
     "badge": "3633",
     "last_heartbeat": "2026-03-05T05:00:00.000Z"
   },

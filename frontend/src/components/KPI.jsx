@@ -158,13 +158,17 @@ export default function KPI({ logs, sessions }) {
                 const machinesSet = new Set(opSessions.map(s => s.machine_id));
                 const machineCount = machinesSet.size;
 
-                const slots = new Set();
+                let totalExpected = 0;
+                const now = new Date().getTime();
+
                 opSessions.forEach(s => {
                     if (!s.started_at) return;
-                    const shift = getShift(s.started_at);
-                    slots.add(`${s.machine_id}_${shift}`);
+                    const start = new Date(s.started_at).getTime();
+                    const end = s.ended_at ? new Date(s.ended_at).getTime() : now;
+                    const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60));
+                    totalExpected += durationHours / 2;
                 });
-                const virtual = slots.size * 4;
+                const virtual = Math.round(totalExpected);
                 const actual = op.ok + op.delay;
                 const none = Math.max(0, virtual - actual);
 
