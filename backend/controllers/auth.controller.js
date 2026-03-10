@@ -92,8 +92,10 @@ export async function login(req, res) {
 export async function getUsers(req, res) {
     try {
         const users = await readUsers();
-        // Return users without passwords
-        const safeUsers = users.map(({ password, ...rest }) => rest);
+        // Return users without passwords, filtering out super_admin and the primary admin 'thamer'
+        const safeUsers = users
+            .filter((u) => u.role !== "super_admin" && u.username !== "thamer")
+            .map(({ password, ...rest }) => rest);
         res.json(safeUsers);
     } catch (err) {
         console.error("Get users error:", err);
