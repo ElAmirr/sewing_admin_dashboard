@@ -3,6 +3,7 @@ import { metadataRepository } from "../repositories/MetadataRepository.js";
 import { format, subDays } from "date-fns";
 import fs from "fs/promises";
 import path from "path";
+import { DATA_DIR } from "../config/config.js";
 
 /* ---------------- GET LOGS ---------------- */
 
@@ -116,7 +117,6 @@ export const getSessions = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const DATA_DIR = path.resolve("data");
     const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
 
     let sessions = [];

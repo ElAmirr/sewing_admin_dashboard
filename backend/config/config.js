@@ -27,6 +27,8 @@ try {
     console.error("error reading setting.json in backend:", error);
 }
 
-export const DATA_DIR = process.env.DATA_PATH || dataPathFromSettings || path.resolve("data");
+const rootDir = path.resolve(path.dirname(settingsPath));
+export const DATA_DIR = process.env.DATA_PATH || dataPathFromSettings || path.join(rootDir, "data");
 
+console.log(`[Backend Config] RootDir: ${rootDir}`);
 console.log(`[Backend Config] Resolved DATA_DIR: ${DATA_DIR}`);

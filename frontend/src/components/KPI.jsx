@@ -58,8 +58,9 @@ export default function KPI({ logs, sessions }) {
                         operatorStats[name] = { name, total: 0, ok: 0, delay: 0, confirmed: 0 };
                     }
                     operatorStats[name].total++;
-                    if (log.status === "OK") operatorStats[name].ok++;
-                    if (log.status === "DELAY") operatorStats[name].delay++;
+                    const status = log.status?.toUpperCase();
+                    if (status === "OK") operatorStats[name].ok++;
+                    if (status === "DELAY") operatorStats[name].delay++;
                     if (log.supervisor_confirmation === "CONFIRMED") operatorStats[name].confirmed++;
                 }
             });
