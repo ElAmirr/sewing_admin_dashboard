@@ -4,7 +4,18 @@
         "logs": "Tableau",
         "kpi": "KPI",
         "statistics": "Statistiques",
-        "management": "Gestion"
+        "management": "Gestion",
+        "monitoring": "Monitoring"
+    },
+    "monitoring": {
+        "title": "Monitoring en temps réel",
+        "subtitle": "Aperçu des sessions actives sur les machines",
+        "noActiveSessions": "Aucune session active trouvée.",
+        "badge": "Badge",
+        "startedSince": "Démarré depuis",
+        "lastActivity": "Dernière activité",
+        "logout": "Forcer Déconnexion",
+        "confirmLogout": "Êtes-vous sûr de vouloir forcer la déconnexion de cette session ? Cela définira une heure de fin pour l'opérateur."
     },
     "filters": {
         "date": "Date",

@@ -10,6 +10,7 @@ import {
   SunIcon,
   MoonIcon,
   LanguagesIcon,
+  MonitoringIcon,
 } from "./Icons";
 import { LogOut } from "lucide-react";
 
@@ -23,6 +24,7 @@ export default function Navbar({ active, onChange }) {
     { id: "kpi", label: t("navbar.kpi"), icon: KpiIcon, superOnly: false },
     { id: "stats", label: t("navbar.statistics"), icon: StatsIcon, superOnly: false },
     { id: "management", label: t("navbar.management"), icon: ManagementIcon, superOnly: true },
+    { id: "monitoring", label: t("navbar.monitoring"), icon: MonitoringIcon, superOnly: true },
   ];
 
   // Filter tabs based on role

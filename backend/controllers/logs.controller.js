@@ -147,6 +147,91 @@ export const getSessions = async (req, res) => {
   }
 };
 
+/* ---------------- GET ACTIVE SESSIONS ---------------- */
+
+export const getActiveSessions = async (req, res) => {
+  try {
+    const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
+    let sessions = [];
+    try {
+      const content = await fs.readFile(SESSION_FILE, "utf-8");
+      sessions = JSON.parse(content);
+    } catch (e) {
+      return res.status(200).json([]);
+    }
+
+    // "Active" defined as:
+    // 1. ended_at is null OR
+    // 2. ended_at == started_at AND started_at is within the last 24 hours
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const activeSessions = sessions.filter(s => {
+      const started = new Date(s.started_at);
+      const ended = s.ended_at ? new Date(s.ended_at) : null;
+
+      const isActuallyOpen = !s.ended_at || s.ended_at === null;
+      const isRecentButNoLogout = s.ended_at === s.started_at && started > twentyFourHoursAgo;
+
+      return isActuallyOpen || isRecentButNoLogout;
+    });
+
+    res.status(200).json(activeSessions);
+  } catch (error) {
+    console.error("❌ getActiveSessions error:", error);
+    res.status(500).json({ error: "Failed to fetch active sessions" });
+  }
+};
+
+/* ---------------- FORCE LOGOUT ---------------- */
+
+export const forceLogout = async (req, res) => {
+  try {
+    const { id } = req.params; // session_id
+    const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
+
+    let sessions = [];
+    try {
+      const content = await fs.readFile(SESSION_FILE, "utf-8");
+      sessions = JSON.parse(content);
+    } catch (e) {
+      return res.status(404).json({ error: "Sessions file not found" });
+    }
+
+    const sessionIndex = sessions.findIndex(s => String(s.session_id) === String(id));
+    if (sessionIndex === -1) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    const session = sessions[sessionIndex];
+    const now = new Date().toISOString();
+
+    // 1. Update session in memory and file
+    sessions[sessionIndex].ended_at = now;
+    sessions[sessionIndex].last_heartbeat = now;
+    await fs.writeFile(SESSION_FILE, JSON.stringify(sessions, null, 2));
+
+    // 2. Create a "Force Logout" log entry in the machine's log file to ensure persistence
+    const logData = {
+      machine_id: session.machine_id,
+      operator_id: session.operator_id,
+      color: "NONE",
+      status: "FORCE_LOGOUT",
+      operator_press_time: now,
+      cycle_start_time: now,
+      cycle_end_time: now,
+      updated_at: now
+    };
+
+    await logRepository.createLog(logData);
+
+    res.status(200).json({ message: "Force logout successful", ended_at: now });
+  } catch (error) {
+    console.error("❌ forceLogout error:", error);
+    res.status(500).json({ error: "Failed to force logout" });
+  }
+};
+
 /* ---------------- UPDATE LOG ---------------- */
 
 export const updateLog = async (req, res) => {

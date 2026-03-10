@@ -60,17 +60,17 @@ async function generateSessions() {
                             operator_id: parseInt(log.operator_id),
                             shift: shift,
                             started_at: log.cycle_start_time,
-                            ended_at: log.cycle_end_time || log.cycle_start_time
+                            ended_at: log.cycle_end_time || null
                         };
                     } else {
                         // Merge logic
                         if (new Date(log.cycle_start_time) < new Date(globalGroups[key].started_at)) {
                             globalGroups[key].started_at = log.cycle_start_time;
                         }
-                        if (log.cycle_end_time && new Date(log.cycle_end_time) > new Date(globalGroups[key].ended_at)) {
+                        if (log.cycle_end_time && (!globalGroups[key].ended_at || new Date(log.cycle_end_time) > new Date(globalGroups[key].ended_at))) {
                             globalGroups[key].ended_at = log.cycle_end_time;
-                        } else if (new Date(log.cycle_start_time) > new Date(globalGroups[key].ended_at)) {
-                            globalGroups[key].ended_at = log.cycle_start_time;
+                        } else if (!log.cycle_end_time && !globalGroups[key].ended_at) {
+                            // Keep it null or potentially update heartbeat
                         }
                     }
                 });

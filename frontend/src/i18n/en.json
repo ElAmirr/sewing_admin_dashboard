@@ -4,7 +4,18 @@
         "logs": "Tables",
         "kpi": "KPI",
         "statistics": "Statistics",
-        "management": "Management"
+        "management": "Management",
+        "monitoring": "Monitoring"
+    },
+    "monitoring": {
+        "title": "Live Monitoring",
+        "subtitle": "Real-time view of active machine sessions",
+        "noActiveSessions": "No active sessions found.",
+        "badge": "Badge",
+        "startedSince": "Started Since",
+        "lastActivity": "Last Activity",
+        "logout": "Force Logout",
+        "confirmLogout": "Are you sure you want to force logout this session? This will set an end time for the operator."
     },
     "filters": {
         "date": "Date",

@@ -53,3 +53,13 @@ export const fetchMachines = async () => {
   const res = await api.get("/metadata/machines");
   return res.data;
 };
+
+export const fetchActiveSessions = async () => {
+  const res = await api.get("/logs/sessions/active");
+  return res.data;
+};
+
+export const forceLogout = async (sessionId) => {
+  const res = await api.post(`/logs/sessions/${sessionId}/logout`);
+  return res.data;
+};

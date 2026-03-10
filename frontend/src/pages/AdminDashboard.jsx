@@ -10,6 +10,7 @@ import Navbar from "../components/Navbar";
 import Statistics from "../components/Statistics";
 import KPI from "../components/KPI";
 import Management from "./Management";
+import Monitoring from "./Monitoring";
 
 export default function AdminDashboard() {
   const { t } = useLanguage();
@@ -150,6 +151,8 @@ export default function AdminDashboard() {
       )}
 
       {active === "management" && <Management />}
+
+      {active === "monitoring" && <Monitoring />}
 
       {!isLoading && !isError && active === "kpi" && (
         <KPI logs={filteredLogs} sessions={filteredSessions} />

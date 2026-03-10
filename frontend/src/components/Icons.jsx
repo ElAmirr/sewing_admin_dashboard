@@ -9,9 +9,11 @@ export {
     Gauge as KpiIcon,
     TrendingUp as StatsIcon,
     SlidersHorizontal as ManagementIcon,
+    Activity as MonitoringIcon,
 
     // Filters
     Calendar as DateIcon,
+    Clock as ClockIcon,
     Clock as ShiftIcon,
     Cpu as MachineIcon,
 
