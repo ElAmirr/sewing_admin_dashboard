@@ -31,6 +31,9 @@ app.get("/api/auth/users", authController.getUsers);
 app.post("/api/auth/users", authController.addUser);
 app.delete("/api/auth/users/:id", authController.deleteUser);
 
+// Migrate any plain-text passwords to bcrypt hashes on startup
+authController.migratePasswords();
+
 // Routes
 app.use("/api/logs", logsRoutes);
 

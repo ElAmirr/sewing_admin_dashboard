@@ -1,9 +1,11 @@
 import fsPromises from "fs/promises";
 import fs from "fs";
 import path from "path";
+import bcrypt from "bcryptjs";
 import { DATA_DIR } from "../config/config.js";
 
 const USERS_FILE = path.join(DATA_DIR, "users.json");
+const SALT_ROUNDS = 10;
 
 async function readUsers() {
     try {
@@ -23,6 +25,32 @@ async function writeUsers(users) {
     await fsPromises.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+/**
+ * Migrate plain-text passwords to bcrypt hashes on first startup.
+ * A hashed password always starts with "$2a$" or "$2b$".
+ */
+export async function migratePasswords() {
+    try {
+        const users = await readUsers();
+        let changed = false;
+
+        for (const user of users) {
+            if (user.password && !user.password.startsWith("$2")) {
+                console.log(`[Auth] Hashing password for user: ${user.username}`);
+                user.password = await bcrypt.hash(user.password, SALT_ROUNDS);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            await writeUsers(users);
+            console.log("[Auth] ✅ Password migration complete.");
+        }
+    } catch (err) {
+        console.error("[Auth] ❌ Password migration error:", err);
+    }
+}
+
 // POST /api/auth/login
 export async function login(req, res) {
     try {
@@ -32,11 +60,22 @@ export async function login(req, res) {
         }
 
         const users = await readUsers();
-        const user = users.find(
-            (u) => u.username === username && u.password === password
-        );
+        const user = users.find((u) => u.username === username);
 
         if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        // Support both hashed and plain-text (legacy) passwords
+        let passwordMatch = false;
+        if (user.password.startsWith("$2")) {
+            passwordMatch = await bcrypt.compare(password, user.password);
+        } else {
+            // Plain-text fallback (should not exist after migration)
+            passwordMatch = user.password === password;
+        }
+
+        if (!passwordMatch) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
@@ -78,10 +117,12 @@ export async function addUser(req, res) {
         }
 
         const newId = users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1;
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
         const newUser = {
             id: newId,
             username,
-            password,
+            password: hashedPassword,
             role: "admin", // New users are always level 1 admin
             name,
         };

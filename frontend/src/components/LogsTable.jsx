@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteLog as apiDeleteLog, updateLog as apiUpdateLog } from "../api/api";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { deleteLog as apiDeleteLog, updateLog as apiUpdateLog, api } from "../api/api";
 import { useLanguage } from "../context/LanguageContext";
 import { MachineIcon, OperatorIcon, SupervisorIcon } from "./Icons";
 
@@ -23,6 +23,15 @@ export default function LogsTable({ logs }) {
   const [editForm, setEditForm] = useState({});
 
   const changes = groupByChanges(logs);
+
+  // Fetch supervisors for dropdown in edit mode
+  const { data: supervisors = [] } = useQuery({
+    queryKey: ["supervisors"],
+    queryFn: async () => {
+      const res = await api.get("/metadata/supervisors");
+      return res.data;
+    }
+  });
 
   const deleteMutation = useMutation({
     mutationFn: apiDeleteLog,
@@ -57,9 +66,31 @@ export default function LogsTable({ logs }) {
 
   const handleEdit = (log) => {
     setEditingLogId(log.log_id);
+
+    // Auto-compute scan time = press_time + 30 minutes
+    let autoScanTime = log.supervisor_scan_time || null;
+    if (!autoScanTime && log.operator_press_time) {
+      const pressTime = new Date(log.operator_press_time);
+      if (!isNaN(pressTime)) {
+        autoScanTime = new Date(pressTime.getTime() + 30 * 60 * 1000).toISOString();
+      }
+    }
+
     setEditForm({
       status: log.status,
-      supervisor_confirmation: log.supervisor_confirmation
+      supervisor_id: log.supervisor_id || "",
+      supervisor_confirmation: log.supervisor_confirmation || "",
+      supervisor_scan_time: autoScanTime || "",
+    });
+  };
+
+  const handleSupervisorChange = (e) => {
+    const selectedId = parseInt(e.target.value);
+    const sup = supervisors.find(s => s.supervisor_id === selectedId);
+    setEditForm({
+      ...editForm,
+      supervisor_id: selectedId || "",
+      supervisor_badge: sup ? sup.badge : "",
     });
   };
 
@@ -123,7 +154,24 @@ export default function LogsTable({ logs }) {
                   <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{log.log_id}</td>
                   <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{log.machine}</td>
                   <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatPerson(log.operator)}</td>
-                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatPerson(log.supervisor)}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>
+                    {editingLogId === log.log_id ? (
+                      <select
+                        value={editForm.supervisor_id || ""}
+                        onChange={handleSupervisorChange}
+                        style={{ ...styles.select, minWidth: "120px" }}
+                      >
+                        <option value="">— {t("logsTable.noSupervisor") || "None"} —</option>
+                        {supervisors.map(sup => (
+                          <option key={sup.supervisor_id} value={sup.supervisor_id}>
+                            {sup.supervisor_name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      formatPerson(log.supervisor)
+                    )}
+                  </td>
                   <td style={{ padding: "1rem", color: "var(--text-primary)" }}>
                     {log.color}
                   </td>
@@ -158,7 +206,18 @@ export default function LogsTable({ logs }) {
                       log.supervisor_confirmation ?? "—"
                     )}
                   </td>
-                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>{formatTime(log.supervisor_scan_time)}</td>
+                  <td style={{ padding: "1rem", color: "var(--text-primary)" }}>
+                    {editingLogId === log.log_id ? (
+                      <input
+                        type="datetime-local"
+                        value={editForm.supervisor_scan_time ? toDatetimeLocal(editForm.supervisor_scan_time) : ""}
+                        onChange={(e) => setEditForm({ ...editForm, supervisor_scan_time: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+                        style={{ ...styles.input, width: "160px" }}
+                      />
+                    ) : (
+                      formatTime(log.supervisor_scan_time)
+                    )}
+                  </td>
                   <td style={{ padding: "1rem" }}>
                     <div style={{ display: "flex", gap: "8px" }}>
                       {editingLogId === log.log_id ? (
@@ -275,6 +334,15 @@ function formatPerson(value) {
   }
   if (typeof value === "number") return `ID ${value}`;
   return value;
+}
+
+// Convert ISO string to value suitable for datetime-local input (strips seconds/ms)
+function toDatetimeLocal(isoStr) {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  if (isNaN(d)) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 const styles = {
