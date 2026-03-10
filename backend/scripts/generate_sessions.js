@@ -4,13 +4,17 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-import { DATA_DIR } from "../config/config.js";
+import { DATA_DIR } from "../backend/config/config.js";
 const OUTPUT_FILE = path.join(DATA_DIR, "machine_sessions.json");
 
 const getBusinessDate = (d) => {
     const date = new Date(d);
     const shifted = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-    return shifted.toISOString().split("T")[0];
+    // Use local-friendly format to match backend
+    const y = shifted.getFullYear();
+    const m = String(shifted.getMonth() + 1).padStart(2, '0');
+    const day = String(shifted.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 };
 
 const getShift = (d) => {

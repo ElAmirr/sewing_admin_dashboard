@@ -19,7 +19,7 @@ function getRootDataDir() {
         console.error('Error reading setting.json:', error);
     }
 
-    return process.env.DATA_PATH || dataPathFromSettings || path.resolve(__dirname, '../../backend/data');
+    return process.env.DATA_PATH || dataPathFromSettings || path.resolve(__dirname, '../../data');
 }
 
 module.exports = { getRootDataDir };

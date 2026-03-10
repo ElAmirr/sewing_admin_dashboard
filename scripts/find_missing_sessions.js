@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = './backend/data';
+const DATA_DIR = './data';
 const SESSION_FILE = path.join(DATA_DIR, 'machine_sessions.json');
 const DATE_TO_CHECK = '2026-03-05';
 
@@ -21,12 +21,19 @@ async function analyze() {
         for (const log of logs) {
             if (!log.operator_id) continue;
 
-            // Check if this operator has a session on this machine for this date
-            const hasSession = sessions.some(s =>
-                s.operator_id === log.operator_id &&
-                s.machine_id === machineId &&
-                (s.started_at.startsWith(DATE_TO_CHECK) || s.ended_at?.startsWith(DATE_TO_CHECK))
-            );
+            // Check if this operator has a session on this machine for this business date
+            const hasSession = sessions.some(s => {
+                if (s.operator_id !== log.operator_id || s.machine_id !== machineId) return false;
+
+                // Calculate business date for session start
+                const date = new Date(s.started_at);
+                const shifted = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+                const bDate = shifted.getFullYear() + "-" +
+                    String(shifted.getMonth() + 1).padStart(2, '0') + "-" +
+                    String(shifted.getDate()).padStart(2, '0');
+
+                return bDate === DATE_TO_CHECK;
+            });
 
             if (!hasSession) {
                 missingSessions.push({
