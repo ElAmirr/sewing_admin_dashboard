@@ -57,21 +57,6 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
-  },
-  {
-    "log_id": 1772745429169,
-    "machine_id": 9,
-    "operator_id": 22,
-    "color": "Red",
-    "status": "DELAY",
-    "operator_press_time": "2026-03-05T21:17:09.169Z",
-    "cycle_start_time": "2026-03-05T21:00:00.000Z",
-    "cycle_end_time": "2026-03-05T23:00:00.000Z",
-    "supervisor_id": 4,
-    "supervisor_badge": "112233",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T21:29:35.638Z",
-    "updated_at": "2026-03-05T21:29:35.638Z"
+    "updated_at": "2026-03-05T11:00:22.407Z"
   }
 ]

@@ -12,7 +12,7 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
+    "updated_at": "2026-03-05T01:10:06.087Z"
   },
   {
     "log_id": 1772679610187,
@@ -28,21 +28,6 @@
     "supervisor_confirmation": "NOT_CONFIRMED",
     "supervisor_scan_time": "2026-03-05T04:52:56.962Z",
     "updated_at": "2026-03-05T04:52:56.962Z"
-  },
-  {
-    "log_id": 1772687679191,
-    "machine_id": 10,
-    "operator_id": 2,
-    "color": "Red",
-    "status": "DELAY",
-    "operator_press_time": "2026-03-05T05:14:39.191Z",
-    "cycle_start_time": "2026-03-05T05:00:00.000Z",
-    "cycle_end_time": "2026-03-05T07:00:00.000Z",
-    "supervisor_id": 4,
-    "supervisor_badge": "112233",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T05:29:57.247Z",
-    "updated_at": "2026-03-05T05:29:57.247Z"
   },
   {
     "log_id": 1772694040107,
@@ -87,36 +72,6 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
-  },
-  {
-    "log_id": 1772745327538,
-    "machine_id": 10,
-    "operator_id": 26,
-    "color": "Red",
-    "status": "DELAY",
-    "operator_press_time": "2026-03-05T21:15:27.538Z",
-    "cycle_start_time": "2026-03-05T21:00:00.000Z",
-    "cycle_end_time": "2026-03-05T23:00:00.000Z",
-    "supervisor_id": 2,
-    "supervisor_badge": "8900",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T22:22:39.878Z",
-    "updated_at": "2026-03-05T22:22:39.878Z"
-  },
-  {
-    "log_id": 1772751608138,
-    "machine_id": 10,
-    "operator_id": 1,
-    "color": "Blue",
-    "status": "OK",
-    "operator_press_time": "2026-03-05T23:00:08.138Z",
-    "cycle_start_time": "2026-03-05T23:00:00.000Z",
-    "cycle_end_time": "2026-03-06T01:00:00.000Z",
-    "supervisor_id": 4,
-    "supervisor_badge": "112233",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T23:18:27.195Z",
-    "updated_at": "2026-03-05T23:18:27.195Z"
+    "updated_at": "2026-03-05T11:02:12.146Z"
   }
 ]

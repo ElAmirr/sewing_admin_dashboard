@@ -12,7 +12,7 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
+    "updated_at": "2026-03-05T01:00:08.580Z"
   },
   {
     "log_id": 1772679615143,
@@ -45,21 +45,6 @@
     "updated_at": "2026-03-05T05:35:01.591Z"
   },
   {
-    "log_id": 1772694162073,
-    "machine_id": 12,
-    "operator_id": 21,
-    "color": "Blue",
-    "status": "OK",
-    "operator_press_time": "2026-03-05T07:02:42.073Z",
-    "cycle_start_time": "2026-03-05T07:00:00.000Z",
-    "cycle_end_time": "2026-03-05T09:00:00.000Z",
-    "supervisor_id": null,
-    "supervisor_badge": null,
-    "supervisor_confirmation": null,
-    "supervisor_scan_time": null,
-    "updated_at": null
-  },
-  {
     "log_id": 1772694163420,
     "machine_id": 12,
     "operator_id": 21,
@@ -72,7 +57,7 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
+    "updated_at": "2026-03-05T07:02:43.420Z"
   },
   {
     "log_id": 1772701272968,
@@ -87,7 +72,7 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
+    "updated_at": "2026-03-05T09:01:12.968Z"
   },
   {
     "log_id": 1772708428541,
@@ -102,36 +87,6 @@
     "supervisor_badge": null,
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
-    "updated_at": null
-  },
-  {
-    "log_id": 1772745406375,
-    "machine_id": 12,
-    "operator_id": 21,
-    "color": "Red",
-    "status": "DELAY",
-    "operator_press_time": "2026-03-05T21:16:46.375Z",
-    "cycle_start_time": "2026-03-05T21:00:00.000Z",
-    "cycle_end_time": "2026-03-05T23:00:00.000Z",
-    "supervisor_id": 2,
-    "supervisor_badge": "8900",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T21:47:50.093Z",
-    "updated_at": "2026-03-05T21:47:50.093Z"
-  },
-  {
-    "log_id": 1772751616414,
-    "machine_id": 12,
-    "operator_id": 14,
-    "color": "Blue",
-    "status": "OK",
-    "operator_press_time": "2026-03-05T23:00:16.414Z",
-    "cycle_start_time": "2026-03-05T23:00:00.000Z",
-    "cycle_end_time": "2026-03-06T01:00:00.000Z",
-    "supervisor_id": 4,
-    "supervisor_badge": "112233",
-    "supervisor_confirmation": "CONFIRMED",
-    "supervisor_scan_time": "2026-03-05T23:11:43.217Z",
-    "updated_at": "2026-03-05T23:11:43.217Z"
+    "updated_at": "2026-03-05T11:00:28.541Z"
   }
 ]
