@@ -70,9 +70,9 @@
     "cycle_end_time": "2026-03-09T23:00:00.000Z",
     "supervisor_id": null,
     "supervisor_badge": null,
-    "supervisor_confirmation": null,
+    "supervisor_confirmation": "CONFIRMED",
     "supervisor_scan_time": null,
-    "updated_at": null
+    "updated_at": "2026-03-10T04:31:17.421Z"
   },
   {
     "log_id": 1773097207598,

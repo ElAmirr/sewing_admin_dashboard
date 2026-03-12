@@ -73,20 +73,5 @@
     "supervisor_confirmation": null,
     "supervisor_scan_time": null,
     "updated_at": null
-  },
-  {
-    "log_id": 1772888406863,
-    "machine_id": 5,
-    "operator_id": 18,
-    "color": "Red",
-    "status": "OK",
-    "operator_press_time": "2026-03-07T13:00:06.863Z",
-    "cycle_start_time": "2026-03-07T13:00:00.000Z",
-    "cycle_end_time": "2026-03-07T15:00:00.000Z",
-    "supervisor_id": null,
-    "supervisor_badge": null,
-    "supervisor_confirmation": null,
-    "supervisor_scan_time": null,
-    "updated_at": null
   }
 ]

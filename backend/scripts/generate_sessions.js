@@ -52,7 +52,8 @@ async function generateSessions() {
                     if (!log.operator_id) return;
                     const bizDate = getBusinessDate(log.cycle_start_time);
                     const shift = getShift(log.cycle_start_time);
-                    const key = `${log.operator_id}_${bizDate}`;
+                    // NEW KEY: Group by Operator + Machine + Shift + Date
+                    const key = `${log.operator_id}_${machineId}_${shift}_${bizDate}`;
 
                     if (!globalGroups[key]) {
                         globalGroups[key] = {
@@ -60,7 +61,8 @@ async function generateSessions() {
                             operator_id: parseInt(log.operator_id),
                             shift: shift,
                             started_at: log.cycle_start_time,
-                            ended_at: log.cycle_end_time || null
+                            ended_at: log.cycle_end_time || null,
+                            business_date: bizDate
                         };
                     } else {
                         // Merge logic

@@ -79,63 +79,64 @@
     "name": "Adem Baraketi",
     "badge": "8794"
   },
-
   {
     "operator_id": 17,
     "name": "Asma",
     "badge": "8441"
   },
-
   {
     "operator_id": 18,
     "name": "Imen",
     "badge": "8799"
   },
-{
+  {
     "operator_id": 19,
     "name": "Rihab Hammami",
     "badge": "8450"
   },
-{
+  {
     "operator_id": 20,
     "name": "Ayoub",
     "badge": "8545"
   },
-{
+  {
     "operator_id": 21,
     "name": "Hajer",
     "badge": "8713"
   },
-{
+  {
     "operator_id": 22,
     "name": "Makrem",
     "badge": "5936"
   },
-{
+  {
     "operator_id": 23,
     "name": "Maher",
     "badge": "8624"
   },
-{
+  {
     "operator_id": 24,
     "name": "Amir",
     "badge": "8617"
   },
-{
+  {
     "operator_id": 25,
     "name": "Kais Werfelli",
     "badge": "3892"
   },
-
-{
+  {
     "operator_id": 26,
     "name": "Med Ali Trabelsi",
     "badge": "5942"
   },
-
-{
+  {
     "operator_id": 27,
     "name": "Ayoub Dalla",
     "badge": "8515"
+  },
+  {
+    "operator_id": 28,
+    "name": "Med Amin",
+    "badge": "8410"
   }
 ]
