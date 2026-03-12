@@ -99,13 +99,15 @@ export default function Statistics({ logs, sessions, shift }) {
             .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift))
             .map(slot => {
                 const total = slot.virtual || (slot.ok + slot.delay) || 1;
+                const okR = parseFloat(((slot.ok / total) * 100).toFixed(1));
+                const delayR = parseFloat(((slot.delay / total) * 100).toFixed(1));
                 return {
                     ...slot,
                     totalChanges: slot.ok + slot.delay,
                     noneTotal: slot.none,
-                    okRate: parseFloat(((slot.ok / total) * 100).toFixed(1)),
-                    delayRate: parseFloat(((slot.delay / total) * 100).toFixed(1)),
-                    noneRate: parseFloat(((slot.none / total) * 100).toFixed(1)),
+                    okRate: okR,
+                    delayRate: delayR,
+                    noneRate: parseFloat((100 - okR - delayR).toFixed(1)),
                     supervisorActivity: parseFloat(((slot.reviewed / (slot.ok + slot.delay || 1)) * 100).toFixed(1)),
                     credibilityScore: slot.reviewed > 0
                         ? parseFloat(((slot.confirmed / slot.reviewed) * 100).toFixed(1))

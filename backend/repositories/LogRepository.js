@@ -105,6 +105,19 @@ class LogRepository {
             logs = [];
         }
 
+        // --- Duplicate Prevention Logic ---
+        // Check if a log for this machine and cycle already exists
+        const existingLog = logs.find(l =>
+            String(l.machine_id) === String(machine_id) &&
+            l.cycle_start_time === cycle_start_time
+        );
+
+        if (existingLog) {
+            console.log(`⚠️ Duplicate log detected for machine ${machine_id} at ${cycle_start_time}. Ignoring.`);
+            return existingLog.log_id; // Return existing ID to satisfy the caller idempotently
+        }
+        // ----------------------------------
+
         const nextLogId = logs.length > 0 ? Math.max(...logs.map(l => l.log_id)) + 1 : 1;
 
         // Auto-inject supervisor badge if ID is provided

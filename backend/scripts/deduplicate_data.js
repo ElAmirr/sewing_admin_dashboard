@@ -41,8 +41,8 @@ async function deduplicate() {
             const seenKeys = new Set();
 
             for (const log of logs) {
-                // Key: machine_id + operator_id + cycle_start_time + status (normalize case)
-                const key = `${log.machine_id}_${log.operator_id}_${log.cycle_start_time}_${(log.status || '').toUpperCase()}`;
+                // Key: machine_id + cycle_start_time (Deduplicate per cycle)
+                const key = `${log.machine_id}_${log.cycle_start_time}`;
 
                 if (!seenKeys.has(key)) {
                     seenKeys.add(key);

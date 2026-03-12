@@ -91,9 +91,14 @@ export default function KPI({ logs, sessions }) {
         const supervisorActivity = logs.length > 0 ? ((reviewedCount / logs.length) * 100).toFixed(1) : "0.0";
         const credibilityScore = reviewedCount > 0 ? ((validCount / reviewedCount) * 100).toFixed(1) : "N/A";
         const actualTotal = okCount + delayCount + noneCount;
-        const okRate = actualTotal > 0 ? ((okCount / actualTotal) * 100).toFixed(1) : "0.0";
-        const delayRate = actualTotal > 0 ? ((delayCount / actualTotal) * 100).toFixed(1) : "0.0";
-        const noneRate = actualTotal > 0 ? ((noneCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const okRateNum = actualTotal > 0 ? (okCount / actualTotal) * 100 : 0;
+        const delayRateNum = actualTotal > 0 ? (delayCount / actualTotal) * 100 : 0;
+
+        const okRate = okRateNum.toFixed(1);
+        const delayRate = delayRateNum.toFixed(1);
+        // Important: noneRate is the remaining to ensure 100% total
+        const noneRate = (100 - parseFloat(okRate) - parseFloat(delayRate)).toFixed(1);
+
         const totalComplianceRate = actualTotal > 0 ? (((okCount + delayCount) / actualTotal) * 100).toFixed(1) : "0.0";
 
         const rankedOperators = Object.values(operatorStats).sort((a, b) => b.total - a.total);
