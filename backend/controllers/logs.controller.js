@@ -117,22 +117,11 @@ export const getSessions = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
-
-    let sessions = [];
-    try {
-      const content = await fs.readFile(SESSION_FILE, "utf-8");
-      sessions = JSON.parse(content);
-    } catch (e) {
-      return res.status(200).json([]);
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate queries are required" });
     }
 
-    if (startDate && endDate) {
-      sessions = sessions.filter(s => {
-        const bDate = logRepository.getBusinessDate(s.started_at);
-        return bDate >= startDate && bDate <= endDate;
-      });
-    }
+    const sessions = await logRepository.getSessions(startDate, endDate);
 
     const transformedSessions = sessions.map(s => ({
       ...s,
@@ -151,29 +140,16 @@ export const getSessions = async (req, res) => {
 
 export const getActiveSessions = async (req, res) => {
   try {
-    const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
-    let sessions = [];
-    try {
-      const content = await fs.readFile(SESSION_FILE, "utf-8");
-      sessions = JSON.parse(content);
-    } catch (e) {
-      return res.status(200).json([]);
-    }
+    // For active sessions, we look at the last 2 days of sessions to be safe
+    const today = format(new Date(), "yyyy-MM-dd");
+    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
 
-    // "Active" defined as:
-    // 1. ended_at is null OR
-    // 2. ended_at == started_at AND started_at is within the last 24 hours
-    const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sessions = await logRepository.getSessions(yesterday, today);
 
     const activeSessions = sessions.filter(s => {
-      const started = new Date(s.started_at);
-      const ended = s.ended_at ? new Date(s.ended_at) : null;
-
-      const isActuallyOpen = !s.ended_at || s.ended_at === null;
-      const isRecentButNoLogout = s.ended_at === s.started_at && started > twentyFourHoursAgo;
-
-      return isActuallyOpen || isRecentButNoLogout;
+      // Logic for "active" in decentralized system:
+      // ended_at is null
+      return !s.ended_at;
     });
 
     res.status(200).json(activeSessions);
@@ -188,14 +164,22 @@ export const getActiveSessions = async (req, res) => {
 export const forceLogout = async (req, res) => {
   try {
     const { id } = req.params; // session_id
-    const SESSION_FILE = path.join(DATA_DIR, "machine_sessions.json");
+    const { machine_id, started_at } = req.body; // We need context to find the file
+
+    if (!machine_id || !started_at) {
+      return res.status(400).json({ error: "Missing required session context (machine_id, started_at)" });
+    }
+
+    const dateStr = logRepository.getBusinessDate(started_at);
+    const sessionDir = path.join(DATA_DIR, `machine_${machine_id}`, 'sessions');
+    const filePath = path.join(sessionDir, `${dateStr}.json`);
 
     let sessions = [];
     try {
-      const content = await fs.readFile(SESSION_FILE, "utf-8");
+      const content = await fs.readFile(filePath, "utf-8");
       sessions = JSON.parse(content);
     } catch (e) {
-      return res.status(404).json({ error: "Sessions file not found" });
+      return res.status(404).json({ error: "Session file not found" });
     }
 
     const sessionIndex = sessions.findIndex(s => String(s.session_id) === String(id));
@@ -203,18 +187,17 @@ export const forceLogout = async (req, res) => {
       return res.status(404).json({ error: "Session not found" });
     }
 
-    const session = sessions[sessionIndex];
-    const now = new Date().toISOString();
+    const now = new Date().toISOString().replace('Z', '+01:00');
 
-    // 1. Update session in memory and file
+    // 1. Update session in file
     sessions[sessionIndex].ended_at = now;
     sessions[sessionIndex].last_heartbeat = now;
-    await fs.writeFile(SESSION_FILE, JSON.stringify(sessions, null, 2));
+    await fs.writeFile(filePath, JSON.stringify(sessions, null, 2));
 
-    // 2. Create a "Force Logout" log entry in the machine's log file to ensure persistence
+    // 2. Create a "Force Logout" log entry in the machine's log file
     const logData = {
-      machine_id: session.machine_id,
-      operator_id: session.operator_id,
+      machine_id: machine_id,
+      operator_id: sessions[sessionIndex].operator_id,
       color: "NONE",
       status: "FORCE_LOGOUT",
       operator_press_time: now,

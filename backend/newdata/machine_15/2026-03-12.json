@@ -1,0 +1,47 @@
+[
+  {
+    "log_id": 1773356313667,
+    "machine_id": 15,
+    "operator_id": 21,
+    "color": "Red",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-12T22:58:33.667Z",
+    "cycle_start_time": "2026-03-12T21:00:00.000Z",
+    "cycle_end_time": "2026-03-12T23:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  },
+  {
+    "log_id": 1773356418953,
+    "machine_id": 15,
+    "operator_id": 21,
+    "color": "Blue",
+    "status": "OK",
+    "operator_press_time": "2026-03-12T23:00:18.953Z",
+    "cycle_start_time": "2026-03-12T23:00:00.000Z",
+    "cycle_end_time": "2026-03-13T01:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  },
+  {
+    "log_id": 1773358464917,
+    "machine_id": 15,
+    "operator_id": 21,
+    "color": "Blue",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-12T23:34:24.917Z",
+    "cycle_start_time": "2026-03-12T23:00:00.000Z",
+    "cycle_end_time": "2026-03-13T01:00:00.000Z",
+    "supervisor_id": "Hajer",
+    "supervisor_badge": "6458",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-12T23:34:37.599Z",
+    "updated_at": "2026-03-12T23:34:37.599Z"
+  }
+]

@@ -1,0 +1,13 @@
+[
+  {
+    "machine_id": 7,
+    "operator_id": 17,
+    "shift": "Shift2",
+    "started_at": "2026-03-09T06:00:00+01:00",
+    "ended_at": "2026-03-09T14:00:00+01:00",
+    "business_date": "2026-03-09",
+    "badge": "8441",
+    "session_id": "7_17_1773032400000",
+    "last_heartbeat": "2026-03-09T14:00:00+01:00"
+  }
+]

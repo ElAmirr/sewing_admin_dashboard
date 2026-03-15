@@ -1,0 +1,53 @@
+[
+  {
+    "log_id": 1773263424283,
+    "machine_id": 7,
+    "operator_id": 27,
+    "color": "Red",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-11T22:10:24+01:00",
+    "cycle_start_time": "2026-03-11T22:00:00+01:00",
+    "cycle_end_time": "2026-03-12T00:00:00+01:00",
+    "supervisor_id": "Hajer",
+    "supervisor_badge": "6458",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-11T22:26:08+01:00",
+    "updated_at": "2026-03-11T22:26:08+01:00",
+    "timestamp": null,
+    "migrated": true
+  },
+  {
+    "log_id": 1773270018319,
+    "machine_id": 7,
+    "operator_id": 27,
+    "color": "Blue",
+    "status": "OK",
+    "operator_press_time": "2026-03-12T00:00:18+01:00",
+    "cycle_start_time": "2026-03-12T00:00:00+01:00",
+    "cycle_end_time": "2026-03-12T02:00:00+01:00",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null,
+    "timestamp": null,
+    "migrated": true
+  },
+  {
+    "log_id": 1773277205947,
+    "machine_id": 7,
+    "operator_id": 27,
+    "color": "Green",
+    "status": "OK",
+    "operator_press_time": "2026-03-12T02:00:05+01:00",
+    "cycle_start_time": "2026-03-12T02:00:00+01:00",
+    "cycle_end_time": "2026-03-12T04:00:00+01:00",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null,
+    "timestamp": null,
+    "migrated": true
+  }
+]

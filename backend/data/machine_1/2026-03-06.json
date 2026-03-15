@@ -1,0 +1,19 @@
+[
+  {
+    "log_id": 1772940010102.2993,
+    "machine_id": 1,
+    "operator_id": 18,
+    "color": "Green",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-06T07:00:00+01:00",
+    "cycle_start_time": "2026-03-06T06:00:00+01:00",
+    "cycle_end_time": "2026-03-06T14:00:00+01:00",
+    "supervisor_id": 2,
+    "supervisor_badge": "8900",
+    "supervisor_confirmation": "NOT_CONFIRMED",
+    "supervisor_scan_time": "2026-03-06T07:55:00+01:00",
+    "updated_at": "2026-03-06T07:00:00+01:00",
+    "timestamp": null,
+    "migrated": true
+  }
+]

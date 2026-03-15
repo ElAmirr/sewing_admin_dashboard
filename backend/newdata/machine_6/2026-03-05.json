@@ -1,0 +1,17 @@
+[
+  {
+    "log_id": 1772672573671,
+    "machine_id": 6,
+    "operator_id": 16,
+    "color": "Green",
+    "status": "OK",
+    "operator_press_time": "2026-03-05T01:02:53.671Z",
+    "cycle_start_time": "2026-03-05T01:00:00.000Z",
+    "cycle_end_time": "2026-03-05T03:00:00.000Z",
+    "supervisor_id": 2,
+    "supervisor_badge": "8900",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-05T01:57:02.348Z",
+    "updated_at": "2026-03-05T01:57:02.348Z"
+  }
+]

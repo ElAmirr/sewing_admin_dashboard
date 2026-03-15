@@ -1,0 +1,36 @@
+[
+  {
+    "log_id": 1773223460204,
+    "machine_id": 2,
+    "operator_id": 9,
+    "color": "Green",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-11T11:04:20+01:00",
+    "cycle_start_time": "2026-03-11T10:00:00+01:00",
+    "cycle_end_time": "2026-03-11T12:00:00+01:00",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null,
+    "timestamp": null,
+    "migrated": true
+  },
+  {
+    "log_id": 1773226807741,
+    "machine_id": 2,
+    "operator_id": 9,
+    "color": "Yellow",
+    "status": "OK",
+    "operator_press_time": "2026-03-11T12:00:07+01:00",
+    "cycle_start_time": "2026-03-11T12:00:00+01:00",
+    "cycle_end_time": "2026-03-11T14:00:00+01:00",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null,
+    "timestamp": null,
+    "migrated": true
+  }
+]

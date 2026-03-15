@@ -25,13 +25,13 @@ export default function Statistics({ logs, sessions, shift }) {
         if (!logs || logs.length === 0) return [];
 
         const SHIFT_LABEL = { shift1: "S1", shift2: "S2", shift3: "S3", unknown: "?" };
-        const SHIFT_FULL = { shift1: "Shift 1 (21-05)", shift2: "Shift 2 (05-13)", shift3: "Shift 3 (13-21)" };
+        const SHIFT_FULL = { shift1: "Shift 1 (22-06)", shift2: "Shift 2 (06-14)", shift3: "Shift 3 (14-22)" };
 
         const getShift = (dateStr) => {
             const h = new Date(dateStr).getHours();
-            if (h >= 21 || h < 5) return "shift1";
-            if (h >= 5 && h < 13) return "shift2";
-            if (h >= 13 && h < 21) return "shift3";
+            if (h >= 22 || h < 6) return "shift1";
+            if (h >= 6 && h < 14) return "shift2";
+            if (h >= 14 && h < 22) return "shift3";
             return "unknown";
         };
 
@@ -99,15 +99,13 @@ export default function Statistics({ logs, sessions, shift }) {
             .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift))
             .map(slot => {
                 const total = slot.virtual || (slot.ok + slot.delay) || 1;
-                const okR = parseFloat(((slot.ok / total) * 100).toFixed(1));
-                const delayR = parseFloat(((slot.delay / total) * 100).toFixed(1));
                 return {
                     ...slot,
                     totalChanges: slot.ok + slot.delay,
                     noneTotal: slot.none,
-                    okRate: okR,
-                    delayRate: delayR,
-                    noneRate: parseFloat((100 - okR - delayR).toFixed(1)),
+                    okRate: parseFloat(((slot.ok / total) * 100).toFixed(1)),
+                    delayRate: parseFloat(((slot.delay / total) * 100).toFixed(1)),
+                    noneRate: parseFloat(((slot.none / total) * 100).toFixed(1)),
                     supervisorActivity: parseFloat(((slot.reviewed / (slot.ok + slot.delay || 1)) * 100).toFixed(1)),
                     credibilityScore: slot.reviewed > 0
                         ? parseFloat(((slot.confirmed / slot.reviewed) * 100).toFixed(1))

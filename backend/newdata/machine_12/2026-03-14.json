@@ -1,0 +1,17 @@
+[
+  {
+    "log_id": 1773450063957,
+    "machine_id": 12,
+    "operator_id": 24,
+    "color": "Green",
+    "status": "OK",
+    "operator_press_time": "2026-03-14T01:01:03.957Z",
+    "cycle_start_time": "2026-03-14T01:00:00.000Z",
+    "cycle_end_time": "2026-03-14T03:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  }
+]

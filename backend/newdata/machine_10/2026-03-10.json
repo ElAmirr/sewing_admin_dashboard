@@ -1,0 +1,62 @@
+[
+  {
+    "log_id": 1773104405572,
+    "machine_id": 10,
+    "operator_id": 23,
+    "color": "Green",
+    "status": "OK",
+    "operator_press_time": "2026-03-10T01:00:05.572Z",
+    "cycle_start_time": "2026-03-10T01:00:00.000Z",
+    "cycle_end_time": "2026-03-10T03:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  },
+  {
+    "log_id": 1773111628207,
+    "machine_id": 10,
+    "operator_id": 23,
+    "color": "Yellow",
+    "status": "OK",
+    "operator_press_time": "2026-03-10T03:00:28.207Z",
+    "cycle_start_time": "2026-03-10T03:00:00.000Z",
+    "cycle_end_time": "2026-03-10T05:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  },
+  {
+    "log_id": 1773177311192,
+    "machine_id": 10,
+    "operator_id": 23,
+    "color": "Red",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-10T21:15:11.192Z",
+    "cycle_start_time": "2026-03-10T21:00:00.000Z",
+    "cycle_end_time": "2026-03-10T23:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  },
+  {
+    "log_id": 1773183922209,
+    "machine_id": 10,
+    "operator_id": 23,
+    "color": "Blue",
+    "status": "OK",
+    "operator_press_time": "2026-03-10T23:05:22.209Z",
+    "cycle_start_time": "2026-03-10T23:00:00.000Z",
+    "cycle_end_time": "2026-03-11T01:00:00.000Z",
+    "supervisor_id": null,
+    "supervisor_badge": null,
+    "supervisor_confirmation": null,
+    "supervisor_scan_time": null,
+    "updated_at": null
+  }
+]

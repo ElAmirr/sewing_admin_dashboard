@@ -26,9 +26,13 @@ export default function Monitoring() {
         }
     });
 
-    const handleForceLogout = (sessionId) => {
+    const handleForceLogout = (session) => {
         if (window.confirm(t("monitoring.confirmLogout"))) {
-            logoutMutation.mutate(sessionId);
+            logoutMutation.mutate({
+                sessionId: session.session_id,
+                machine_id: session.machine_id,
+                started_at: session.started_at
+            });
         }
     };
 
@@ -73,7 +77,7 @@ export default function Monitoring() {
                                     </td>
                                     <td style={styles.td}>
                                         <button
-                                            onClick={() => handleForceLogout(session.session_id)}
+                                            onClick={() => handleForceLogout(session)}
                                             style={styles.logoutBtn}
                                             disabled={logoutMutation.isPending}
                                         >

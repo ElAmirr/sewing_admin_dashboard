@@ -21,9 +21,13 @@ export default function KPI({ logs, sessions }) {
 
         const getShift = (dateStr) => {
             const h = new Date(dateStr).getHours();
-            if (h >= 21 || h < 5) return "shift1";
-            if (h >= 5 && h < 13) return "shift2";
-            if (h >= 13 && h < 21) return "shift3";
+            // New Architecture Shift Mapping:
+            // Shift 1: 22:00 - 06:00
+            // Shift 2: 06:00 - 14:00
+            // Shift 3: 14:00 - 22:00
+            if (h >= 22 || h < 6) return "shift1";
+            if (h >= 6 && h < 14) return "shift2";
+            if (h >= 14 && h < 22) return "shift3";
             return "unknown";
         };
 
@@ -91,14 +95,9 @@ export default function KPI({ logs, sessions }) {
         const supervisorActivity = logs.length > 0 ? ((reviewedCount / logs.length) * 100).toFixed(1) : "0.0";
         const credibilityScore = reviewedCount > 0 ? ((validCount / reviewedCount) * 100).toFixed(1) : "N/A";
         const actualTotal = okCount + delayCount + noneCount;
-        const okRateNum = actualTotal > 0 ? (okCount / actualTotal) * 100 : 0;
-        const delayRateNum = actualTotal > 0 ? (delayCount / actualTotal) * 100 : 0;
-
-        const okRate = okRateNum.toFixed(1);
-        const delayRate = delayRateNum.toFixed(1);
-        // Important: noneRate is the remaining to ensure 100% total
-        const noneRate = (100 - parseFloat(okRate) - parseFloat(delayRate)).toFixed(1);
-
+        const okRate = actualTotal > 0 ? ((okCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const delayRate = actualTotal > 0 ? ((delayCount / actualTotal) * 100).toFixed(1) : "0.0";
+        const noneRate = actualTotal > 0 ? ((noneCount / actualTotal) * 100).toFixed(1) : "0.0";
         const totalComplianceRate = actualTotal > 0 ? (((okCount + delayCount) / actualTotal) * 100).toFixed(1) : "0.0";
 
         const rankedOperators = Object.values(operatorStats).sort((a, b) => b.total - a.total);

@@ -59,7 +59,10 @@ export const fetchActiveSessions = async () => {
   return res.data;
 };
 
-export const forceLogout = async (sessionId) => {
-  const res = await api.post(`/logs/sessions/${sessionId}/logout`);
+export const forceLogout = async ({ sessionId, machine_id, started_at }) => {
+  const res = await api.post(`/logs/sessions/${sessionId}/logout`, {
+    machine_id,
+    started_at
+  });
   return res.data;
 };

@@ -1,0 +1,24 @@
+[
+  {
+    "machine_id": 3,
+    "operator_id": 13,
+    "shift": "Shift1",
+    "started_at": "2026-03-06T22:00:00+01:00",
+    "ended_at": "2026-03-07T06:00:00+01:00",
+    "business_date": "2026-03-07",
+    "badge": "8449",
+    "session_id": "3_13_1772830800000",
+    "last_heartbeat": "2026-03-07T06:00:00+01:00"
+  },
+  {
+    "machine_id": 3,
+    "operator_id": 28,
+    "shift": "Shift2",
+    "started_at": "2026-03-07T08:00:00+01:00",
+    "ended_at": "2026-03-07T14:00:00+01:00",
+    "business_date": "2026-03-07",
+    "badge": "8410",
+    "session_id": "3_28_1772866800000",
+    "last_heartbeat": "2026-03-07T14:00:00+01:00"
+  }
+]

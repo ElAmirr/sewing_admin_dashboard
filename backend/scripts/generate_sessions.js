@@ -9,19 +9,27 @@ const OUTPUT_FILE = path.join(DATA_DIR, "machine_sessions.json");
 
 const getBusinessDate = (d) => {
     const date = new Date(d);
-    const shifted = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-    return shifted.toISOString().split("T")[0];
+    // Get hour in Tunisia time (UTC+1)
+    const tunisiaHour = new Date(date.getTime() + 1 * 60 * 60 * 1000).getUTCHours();
+    const shifted = new Date(date.getTime() + 1 * 60 * 60 * 1000);
+    if (tunisiaHour >= 22) {
+        shifted.setUTCDate(shifted.getUTCDate() + 1);
+    }
+    const day = String(shifted.getUTCDate()).padStart(2, '0');
+    const month = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+    const year = shifted.getUTCFullYear();
+    return `${year}-${month}-${day}`;
 };
 
 const getShift = (d) => {
-    const hour = new Date(d).getUTCHours();
-    if (hour >= 21 || hour < 5) return "Shift1";
-    if (hour >= 5 && hour < 13) return "Shift2";
+    const hour = new Date(d).getHours();
+    if (hour >= 22 || hour < 6) return "Shift1";
+    if (hour >= 6 && hour < 14) return "Shift2";
     return "Shift3";
 };
 
 async function generateSessions() {
-    console.log("🚀 Starting Refined Session Generation...");
+    console.log("🚀 Starting Decentralized Session Generation...");
 
     try {
         const entries = await fs.readdir(DATA_DIR, { withFileTypes: true });
@@ -34,16 +42,23 @@ async function generateSessions() {
             ops.forEach(op => operatorsMap[op.operator_id] = op.badge);
         } catch (e) { }
 
-        const globalGroups = {}; // opId_bizDate -> { machine_id, shift, start, end }
+        // Output collection: machine_id -> business_date -> [sessions]
+        const outputs = {};
 
         for (const dir of machineDirs) {
-            const machineId = parseInt(dir.name.split("_")[1]);
+            const machineIdStr = dir.name.split("_")[1];
+            const machineId = parseInt(machineIdStr);
             const dirPath = path.join(DATA_DIR, dir.name);
             const files = await fs.readdir(dirPath);
 
+            const machineGroups = {}; // sessionKey -> sessionObj
+
             for (const file of files) {
-                if (!file.endsWith(".json")) continue;
+                if (!file.endsWith(".json") || file === "sessions") continue;
                 const filePath = path.join(dirPath, file);
+                const stats = await fs.stat(filePath);
+                if (stats.isDirectory()) continue;
+
                 const content = await fs.readFile(filePath, "utf-8");
                 let logs = [];
                 try { logs = JSON.parse(content); } catch (e) { continue; }
@@ -52,46 +67,56 @@ async function generateSessions() {
                     if (!log.operator_id) return;
                     const bizDate = getBusinessDate(log.cycle_start_time);
                     const shift = getShift(log.cycle_start_time);
-                    // NEW KEY: Group by Operator + Machine + Shift + Date
-                    const key = `${log.operator_id}_${machineId}_${shift}_${bizDate}`;
+                    const key = `${log.operator_id}_${shift}_${bizDate}`;
 
-                    if (!globalGroups[key]) {
-                        globalGroups[key] = {
+                    if (!machineGroups[key]) {
+                        machineGroups[key] = {
                             machine_id: machineId,
                             operator_id: parseInt(log.operator_id),
                             shift: shift,
                             started_at: log.cycle_start_time,
                             ended_at: log.cycle_end_time || null,
-                            business_date: bizDate
+                            business_date: bizDate,
+                            badge: operatorsMap[log.operator_id] || "UNKNOWN"
                         };
                     } else {
-                        // Merge logic
-                        if (new Date(log.cycle_start_time) < new Date(globalGroups[key].started_at)) {
-                            globalGroups[key].started_at = log.cycle_start_time;
+                        if (new Date(log.cycle_start_time) < new Date(machineGroups[key].started_at)) {
+                            machineGroups[key].started_at = log.cycle_start_time;
                         }
-                        if (log.cycle_end_time && (!globalGroups[key].ended_at || new Date(log.cycle_end_time) > new Date(globalGroups[key].ended_at))) {
-                            globalGroups[key].ended_at = log.cycle_end_time;
-                        } else if (!log.cycle_end_time && !globalGroups[key].ended_at) {
-                            // Keep it null or potentially update heartbeat
+                        if (log.cycle_end_time && (!machineGroups[key].ended_at || new Date(log.cycle_end_time) > new Date(machineGroups[key].ended_at))) {
+                            machineGroups[key].ended_at = log.cycle_end_time;
                         }
                     }
                 });
             }
+
+            // Organize by date for this machine
+            for (const session of Object.values(machineGroups)) {
+                const bDate = session.business_date;
+                const mKey = machineId;
+                if (!outputs[mKey]) outputs[mKey] = {};
+                if (!outputs[mKey][bDate]) outputs[mKey][bDate] = [];
+
+                session.session_id = `${mKey}_${session.operator_id}_${Date.parse(session.started_at)}`;
+                session.last_heartbeat = session.ended_at;
+                outputs[mKey][bDate].push(session);
+            }
         }
 
-        let sessionIdCounter = 1;
-        const allSessions = Object.values(globalGroups).map(g => ({
-            session_id: sessionIdCounter++,
-            ...g,
-            badge: operatorsMap[g.operator_id] || "UNKNOWN",
-            last_heartbeat: g.ended_at
-        }));
+        // Write decentralized files
+        let totalFiles = 0;
+        for (const [mId, dates] of Object.entries(outputs)) {
+            const sessionDir = path.join(DATA_DIR, `machine_${mId}`, "sessions");
+            await fs.mkdir(sessionDir, { recursive: true });
 
-        // Sort by date desc
-        allSessions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+            for (const [date, sessions] of Object.entries(dates)) {
+                const filePath = path.join(sessionDir, `${date}.json`);
+                await fs.writeFile(filePath, JSON.stringify(sessions, null, 2));
+                totalFiles++;
+            }
+        }
 
-        await fs.writeFile(OUTPUT_FILE, JSON.stringify(allSessions, null, 2));
-        console.log(`🎉 Generated ${allSessions.length} total sessions in machine_sessions.json`);
+        console.log(`🎉 Generated session files for ${Object.keys(outputs).length} machines across ${totalFiles} total files.`);
 
     } catch (error) {
         console.error("❌ Generation Failed:", error);

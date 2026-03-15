@@ -1,0 +1,53 @@
+[
+  {
+    "log_id": 1772659996418,
+    "machine_id": 6,
+    "operator_id": 16,
+    "color": "Red",
+    "status": "DELAY",
+    "operator_press_time": "2026-03-04T22:33:16+01:00",
+    "cycle_start_time": "2026-03-04T22:00:00+01:00",
+    "cycle_end_time": "2026-03-05T00:00:00+01:00",
+    "supervisor_id": 2,
+    "supervisor_badge": "8900",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-04T23:00:23+01:00",
+    "updated_at": "2026-03-04T23:00:23+01:00",
+    "timestamp": null,
+    "migrated": true
+  },
+  {
+    "log_id": 1772665211387,
+    "machine_id": 6,
+    "operator_id": 16,
+    "color": "Blue",
+    "status": "OK",
+    "operator_press_time": "2026-03-05T00:00:11+01:00",
+    "cycle_start_time": "2026-03-05T00:00:00+01:00",
+    "cycle_end_time": "2026-03-05T02:00:00+01:00",
+    "supervisor_id": 2,
+    "supervisor_badge": "8900",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-05T00:34:10+01:00",
+    "updated_at": "2026-03-05T00:34:10+01:00",
+    "timestamp": null,
+    "migrated": true
+  },
+  {
+    "log_id": 1772672573671,
+    "machine_id": 6,
+    "operator_id": 16,
+    "color": "Green",
+    "status": "OK",
+    "operator_press_time": "2026-03-05T02:02:53+01:00",
+    "cycle_start_time": "2026-03-05T02:00:00+01:00",
+    "cycle_end_time": "2026-03-05T04:00:00+01:00",
+    "supervisor_id": 2,
+    "supervisor_badge": "8900",
+    "supervisor_confirmation": "CONFIRMED",
+    "supervisor_scan_time": "2026-03-05T02:57:02+01:00",
+    "updated_at": "2026-03-05T02:57:02+01:00",
+    "timestamp": null,
+    "migrated": true
+  }
+]

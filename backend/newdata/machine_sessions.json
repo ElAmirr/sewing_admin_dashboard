@@ -1,0 +1,122 @@
+[
+  {
+    "session_id": 116,
+    "machine_id": 9,
+    "operator_id": 26,
+    "badge": "5942",
+    "shift": "Shift3",
+    "started_at": "2026-03-12T21:18:43.558Z",
+    "last_heartbeat": "2026-03-12T21:18:43.558Z",
+    "ended_at": "2026-03-13T04:54:33.624Z"
+  },
+  {
+    "session_id": 137,
+    "machine_id": 15,
+    "operator_id": 21,
+    "badge": "8713",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:08:44.995Z",
+    "last_heartbeat": "2026-03-13T21:08:44.995Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 138,
+    "machine_id": 11,
+    "operator_id": 2,
+    "badge": "5262",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:09:30.096Z",
+    "last_heartbeat": "2026-03-13T21:09:30.096Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 139,
+    "machine_id": 7,
+    "operator_id": 27,
+    "badge": "8515",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:10:21.851Z",
+    "last_heartbeat": "2026-03-13T21:10:21.851Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 140,
+    "machine_id": 13,
+    "operator_id": 3,
+    "badge": "8736",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:40:02.177Z",
+    "last_heartbeat": "2026-03-13T21:40:02.177Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 141,
+    "machine_id": 12,
+    "operator_id": 24,
+    "badge": "8617",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:45:47.131Z",
+    "last_heartbeat": "2026-03-13T21:45:47.131Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 142,
+    "machine_id": 10,
+    "operator_id": 23,
+    "badge": "8624",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T21:46:23.286Z",
+    "last_heartbeat": "2026-03-13T21:46:23.286Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 143,
+    "machine_id": 5,
+    "operator_id": 1,
+    "badge": "3633",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T22:08:12.439Z",
+    "last_heartbeat": "2026-03-13T22:08:12.439Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 145,
+    "machine_id": 2,
+    "operator_id": 26,
+    "badge": "5942",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T22:12:57.719Z",
+    "last_heartbeat": "2026-03-13T22:12:57.719Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 146,
+    "machine_id": 3,
+    "operator_id": 18,
+    "badge": "8799",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T22:34:08.734Z",
+    "last_heartbeat": "2026-03-13T22:34:08.734Z",
+    "ended_at": null
+  },
+  {
+    "session_id": 147,
+    "machine_id": 1,
+    "operator_id": 12,
+    "badge": "8900",
+    "shift": "Shift3",
+    "started_at": "2026-03-13T23:44:11.062Z",
+    "last_heartbeat": "2026-03-13T23:44:11.062Z",
+    "ended_at": "2026-03-13T23:44:16.282Z"
+  },
+  {
+    "session_id": 148,
+    "machine_id": 4,
+    "operator_id": 18,
+    "badge": "8799",
+    "shift": "Shift3",
+    "started_at": "2026-03-14T22:07:13.918Z",
+    "last_heartbeat": "2026-03-14T22:07:13.918Z",
+    "ended_at": null
+  }
+]
