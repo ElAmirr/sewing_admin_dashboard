@@ -102,7 +102,11 @@
         "delayBar": "DELAY %",
         "lowActivityBar": "Low Activity %",
         "supActivityBar": "Sup. Activity %",
-        "credibilityBar": "Credibility %"
+        "credibilityBar": "Credibility %",
+        "monthlyWorkTrends": "Monthly Work Trends",
+        "monthlyWorkTrendsDescription": "Trend of OK, Delay, and Low Activity rates across the month",
+        "monthlySupervisorTrends": "Monthly Supervisor Trends",
+        "monthlySupervisorTrendsDescription": "Tracking Supervisor Activity and Credibility Score trends"
     },
     "management": {
         "title": "System Management",

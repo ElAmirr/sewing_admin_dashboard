@@ -15,19 +15,20 @@ import {
     Cell,
     LabelList,
 } from "recharts";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, addDays } from "date-fns";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function Statistics({ logs, sessions, shift }) {
+export default function Statistics({ logs, sessions, shift, date, daysRange = 1 }) {
     const { t } = useLanguage();
 
-    const chartData = useMemo(() => {
+    const fullData = useMemo(() => {
         if (!logs || logs.length === 0) return [];
 
         const SHIFT_LABEL = { shift1: "S1", shift2: "S2", shift3: "S3", unknown: "?" };
         const SHIFT_FULL = { shift1: "Shift 1 (22-06)", shift2: "Shift 2 (06-14)", shift3: "Shift 3 (14-22)" };
 
         const getShift = (dateStr) => {
+            if (!dateStr) return "unknown";
             const h = new Date(dateStr).getHours();
             if (h >= 22 || h < 6) return "shift1";
             if (h >= 6 && h < 14) return "shift2";
@@ -58,7 +59,6 @@ export default function Statistics({ logs, sessions, shift }) {
                     ok: 0, delay: 0, none: 0, virtual: 0,
                     reviewed: 0, confirmed: 0, totalSessionMs: 0,
                     activeOperators: new Set(),
-                    sessionSlots: new Set(),
                 };
             }
             const slot = slotMap[key];
@@ -70,19 +70,16 @@ export default function Statistics({ logs, sessions, shift }) {
                 slot.reviewed++;
                 if (log.supervisor_confirmation === "CONFIRMED") slot.confirmed++;
             }
-            if (log.operator_id) slot.activeOperators.add(log.operator_id);
         });
 
         if (sessions) {
             sessions.forEach(session => {
                 if (!session.started_at) return;
-                const dateKey = session.business_date ||
-                    format(parseISO(session.started_at), "yyyy-MM-dd");
+                const dateKey = session.business_date || format(parseISO(session.started_at), "yyyy-MM-dd");
                 const shiftKey = getShift(session.started_at);
                 const key = `${dateKey}_${shiftKey}`;
                 if (!slotMap[key]) return;
-                const slotKey = `${session.operator_id}_${session.machine_id}`;
-                slotMap[key].sessionSlots.add(slotKey);
+
                 const s = new Date(session.started_at).getTime();
                 const e = session.ended_at ? new Date(session.ended_at).getTime() : new Date().getTime();
                 if (e > s) slotMap[key].totalSessionMs += e - s;
@@ -90,7 +87,6 @@ export default function Statistics({ logs, sessions, shift }) {
         }
 
         Object.values(slotMap).forEach(slot => {
-            // 1 change per 2 hours
             slot.virtual = Math.round(slot.totalSessionMs / (1000 * 60 * 60 * 2));
             slot.none = Math.max(0, slot.virtual - slot.ok - slot.delay);
         });
@@ -102,7 +98,6 @@ export default function Statistics({ logs, sessions, shift }) {
                 return {
                     ...slot,
                     totalChanges: slot.ok + slot.delay,
-                    noneTotal: slot.none,
                     okRate: parseFloat(((slot.ok / total) * 100).toFixed(1)),
                     delayRate: parseFloat(((slot.delay / total) * 100).toFixed(1)),
                     noneRate: parseFloat(((slot.none / total) * 100).toFixed(1)),
@@ -114,6 +109,42 @@ export default function Statistics({ logs, sessions, shift }) {
             });
     }, [logs, sessions]);
 
+    const dailyData = useMemo(() => {
+        if (!date) return [];
+
+        const selectedDates = [];
+        for (let i = 0; i < daysRange; i++) {
+            selectedDates.push(format(addDays(parseISO(date), i), "yyyy-MM-dd"));
+        }
+
+        const shifts = ["shift1", "shift2", "shift3"];
+        const SHIFT_LABEL = { shift1: "S1", shift2: "S2", shift3: "S3" };
+        const SHIFT_FULL = { shift1: "Shift 1", shift2: "Shift 2", shift3: "Shift 3" };
+
+        const result = [];
+        selectedDates.forEach(d => {
+            const filteredForDay = fullData.filter(item => item.date === d);
+            shifts.forEach(s => {
+                const found = filteredForDay.find(f => f.shift === s);
+                if (found) {
+                    result.push({
+                        ...found,
+                        label: daysRange > 1 ? `${format(parseISO(d), "dd/MM")} ${SHIFT_LABEL[s]}` : SHIFT_LABEL[s]
+                    });
+                } else {
+                    result.push({
+                        label: daysRange > 1 ? `${format(parseISO(d), "dd/MM")} ${SHIFT_LABEL[s]}` : SHIFT_LABEL[s],
+                        shiftFull: SHIFT_FULL[s],
+                        date: d,
+                        okRate: 0, delayRate: 0, noneRate: 0,
+                        supervisorActivity: 0, credibilityScore: 0
+                    });
+                }
+            });
+        });
+        return result;
+    }, [fullData, date, daysRange]);
+
     if (!logs || logs.length === 0) {
         return (
             <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
@@ -124,92 +155,142 @@ export default function Statistics({ logs, sessions, shift }) {
 
     return (
         <div style={styles.container}>
-            <h2 style={styles.title}>{t("statistics.monthlyTrends")}</h2>
-
-            <div style={styles.chartGrid}>
-                {/* Chart 1: Work Activity */}
-                <div style={styles.chartCard}>
-                    <h3>{t("statistics.workActivity")}</h3>
-                    <div style={{ height: 320 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} barCategoryGap="20%" barGap={2}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis
-                                    dataKey="label"
-                                    stroke="var(--text-secondary)"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    interval={0}
-                                />
-                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-                                <Tooltip
-                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
-                                    formatter={(value, name) => [`${value}%`, name]}
-                                    labelFormatter={(label) => {
-                                        const item = chartData.find(d => d.label === label);
-                                        return item ? `${item.displayDate} — ${item.shiftFull}` : label;
-                                    }}
-                                />
-                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
-                                <Bar dataKey="okRate" name={t("statistics.okBar")} stackId="active" fill="#4caf50" radius={[0, 0, 0, 0]}>
-                                    <LabelList dataKey="okRate" position="inside" style={{ fill: "#fff", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v >= 8 ? `${v}%` : ""} />
-                                </Bar>
-                                <Bar dataKey="delayRate" name={t("statistics.delayBar")} stackId="active" fill="#ff9800" radius={[0, 0, 0, 0]}>
-                                    <LabelList dataKey="delayRate" position="inside" style={{ fill: "#fff", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v >= 8 ? `${v}%` : ""} />
-                                </Bar>
-                                <Bar dataKey="noneRate" name={t("statistics.lowActivityBar")} fill="#f44336" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="noneRate" position="top" style={{ fill: "var(--text-primary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => v > 0 ? `${v}%` : ""} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+            <div style={styles.headerRow}>
+                <h2 style={styles.title}>{t("statistics.performanceOverview")}</h2>
+                <div style={styles.rangeIndicator}>
+                    {daysRange > 1 ? `Showing ${daysRange} days starting from ${date}` : `Focus: ${date}`}
                 </div>
-
-                {/* Chart 2: Supervisor Activity & Credibility */}
-                <div style={styles.chartCard}>
-                    <h3>{t("statistics.supActivity")}</h3>
-                    <div style={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} barCategoryGap="20%" barGap={2}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                                <XAxis
-                                    dataKey="label"
-                                    stroke="var(--text-secondary)"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    interval={0}
-                                />
-                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-                                <Tooltip
-                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
-                                    formatter={(value, name) => [`${value}%`, name]}
-                                    labelFormatter={(label) => {
-                                        const item = chartData.find(d => d.label === label);
-                                        return item ? `${item.displayDate} — ${item.shiftFull}` : label;
-                                    }}
-                                />
-                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
-                                <Bar dataKey="supervisorActivity" name={t("statistics.supActivityBar")} fill="#4caf50" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="supervisorActivity" position="top" style={{ fill: "var(--text-secondary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => `${v}%`} />
-                                </Bar>
-                                <Bar dataKey="credibilityScore" name={t("statistics.credibilityBar")} fill="#ffc107" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="credibilityScore" position="top" style={{ fill: "var(--text-secondary)", fontSize: 11, fontWeight: "bold" }} formatter={(v) => `${v}%`} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
             </div>
 
-            <h3 style={{ margin: "2rem 0 1rem 1rem", color: "var(--text-secondary)" }}>{t("statistics.dailyBreakdown")}</h3>
-            <div style={{ overflowX: "auto", paddingBottom: "2rem" }}>
+            <div style={styles.chartGrid}>
+                {/* Chart 1: Daily Work Activity */}
+                <div style={styles.chartCard}>
+                    <div style={styles.cardHeader}>
+                        <h3>{t("statistics.workActivity")}</h3>
+                        <span style={styles.dateLabel}>{daysRange === 1 ? format(parseISO(date), "MMMM d") : `${daysRange} Days Analysis`}</span>
+                    </div>
+                    <div style={{ height: 320 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={dailyData} barCategoryGap={daysRange > 1 ? "15%" : "25%"}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                                <XAxis dataKey="label" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
+                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                                <Tooltip
+                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
+                                    formatter={(value, name) => [`${value}%`, name]}
+                                />
+                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
+                                <Bar dataKey="okRate" name={t("statistics.okBar")} stackId="a" fill="#4caf50" />
+                                <Bar dataKey="delayRate" name={t("statistics.delayBar")} stackId="a" fill="#ff9800" />
+                                <Bar dataKey="noneRate" name={t("statistics.lowActivityBar")} fill="#f44336" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Chart 2: Daily Supervisor Metrics */}
+                <div style={styles.chartCard}>
+                    <div style={styles.cardHeader}>
+                        <h3>{t("statistics.supActivity")}</h3>
+                        <span style={styles.dateLabel}>{daysRange === 1 ? format(parseISO(date), "MMMM d") : `${daysRange} Days Analysis`}</span>
+                    </div>
+                    <div style={{ height: 320 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={dailyData} barCategoryGap={daysRange > 1 ? "15%" : "25%"}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                                <XAxis dataKey="label" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
+                                <YAxis unit="%" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                                <Tooltip
+                                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px" }}
+                                    formatter={(value, name) => [`${value}%`, name]}
+                                />
+                                <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
+                                <Bar dataKey="supervisorActivity" name={t("statistics.supActivityBar")} fill="#4caf50" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="credibilityScore" name={t("statistics.credibilityBar")} fill="#ffc107" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Chart 3: Full-Width Monthly Work Trends */}
+            <div style={{ ...styles.chartCard, marginTop: "1.5rem" }}>
+                <div style={styles.cardHeader}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        <h3>{t("statistics.monthlyWorkTrends")}</h3>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
+                            {t("statistics.monthlyWorkTrendsDescription")}
+                        </p>
+                    </div>
+                    <span style={styles.dateLabel}>
+                        {(fullData[0]?.date || date) ? format(parseISO(fullData[0]?.date || date), "MMM yyyy") : "---"}
+                    </span>
+                </div>
+                <div style={{ height: 350 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={fullData}>
+                            <defs>
+                                <linearGradient id="colorOk" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#4caf50" stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor="#4caf50" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                            <XAxis dataKey="label" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                            <YAxis unit="%" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+                            <Tooltip
+                                contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "12px" }}
+                                formatter={(value, name) => [`${value}%`, name]}
+                            />
+                            <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }} />
+
+                            <Area type="monotone" dataKey="okRate" name={t("statistics.okBar")} stroke="#4caf50" fillOpacity={1} fill="url(#colorOk)" strokeWidth={3} />
+                            <Line type="monotone" dataKey="delayRate" name={t("statistics.delayBar")} stroke="#ff9800" strokeWidth={2} dot={false} strokeDasharray="3 3" />
+                            <Line type="monotone" dataKey="noneRate" name={t("statistics.lowActivityBar")} stroke="#f44336" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Chart 4: Full-Width Monthly Supervisor Trends */}
+            <div style={{ ...styles.chartCard, marginTop: "1.5rem" }}>
+                <div style={styles.cardHeader}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        <h3>{t("statistics.monthlySupervisorTrends")}</h3>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
+                            {t("statistics.monthlySupervisorTrendsDescription")}
+                        </p>
+                    </div>
+                    <span style={styles.dateLabel}>
+                        {(fullData[0]?.date || date) ? format(parseISO(fullData[0]?.date || date), "MMM yyyy") : "---"}
+                    </span>
+                </div>
+                <div style={{ height: 350 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={fullData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                            <XAxis dataKey="label" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                            <YAxis unit="%" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+                            <Tooltip
+                                contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "12px" }}
+                                formatter={(value, name) => [`${value}%`, name]}
+                            />
+                            <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }} />
+
+                            <Line type="monotone" dataKey="supervisorActivity" name={t("statistics.supActivityBar")} stroke="#2196f3" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="credibilityScore" name={t("statistics.credibilityBar")} stroke="#9c27b0" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <h3 style={{ margin: "2.5rem 0 1.2rem 0.5rem", color: "var(--text-primary)" }}>{t("statistics.dailyBreakdown")}</h3>
+            <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
                             <th style={styles.th}>{t("statistics.date")}</th>
+                            <th style={styles.th}>Shift</th>
                             <th style={styles.th}>{t("statistics.changesActualVirtual")}</th>
                             <th style={styles.th}>{t("statistics.okPercent")}</th>
                             <th style={styles.th}>{t("statistics.delayPercent")}</th>
@@ -217,13 +298,14 @@ export default function Statistics({ logs, sessions, shift }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {chartData.map((day) => (
-                            <tr key={day.date} style={styles.tr}>
+                        {fullData.map((day) => (
+                            <tr key={`${day.date}_${day.shift}`} style={styles.tr}>
                                 <td style={styles.td}>{day.date}</td>
+                                <td style={styles.td}>{day.shiftFull}</td>
                                 <td style={styles.td}>{day.totalChanges} / {day.virtual}</td>
-                                <td style={{ ...styles.td, color: "#4ade80" }}>{day.okRate}%</td>
-                                <td style={{ ...styles.td, color: "#f472b6" }}>{day.delayRate}%</td>
-                                <td style={{ ...styles.td, color: "#94a3b8" }}>{day.noneRate}%</td>
+                                <td style={{ ...styles.td, color: "#4ade80", fontWeight: "600" }}>{day.okRate}%</td>
+                                <td style={{ ...styles.td, color: "#fb923c", fontWeight: "600" }}>{day.delayRate}%</td>
+                                <td style={{ ...styles.td, color: "#f87171", fontWeight: "600" }}>{day.noneRate}%</td>
                             </tr>
                         ))}
                     </tbody>
@@ -235,52 +317,81 @@ export default function Statistics({ logs, sessions, shift }) {
 
 const styles = {
     container: {
-        padding: "1rem",
+        padding: "1.5rem",
+        maxWidth: "1600px",
+        margin: "0 auto",
+    },
+    headerRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "2rem",
+    },
+    rangeIndicator: {
+        padding: "6px 14px",
+        borderRadius: "8px",
+        background: "var(--bg-secondary)",
+        color: "var(--text-secondary)",
+        fontSize: "0.9rem",
+        border: "1px solid var(--border-color)",
+        fontWeight: "500",
     },
     title: {
         color: "var(--text-primary)",
-        marginBottom: "1.5rem",
-        paddingLeft: "0.5rem",
+        margin: 0,
+        fontSize: "1.5rem",
+        fontWeight: "700",
     },
     chartGrid: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(48%, 1fr))",
         gap: "1.5rem",
     },
     chartCard: {
         background: "var(--bg-card)",
         padding: "1.5rem",
-        borderRadius: "12px",
+        borderRadius: "16px",
         border: "1px solid var(--border-color)",
-        boxShadow: "var(--card-shadow)",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
     },
-    chartSub: {
-        color: "var(--text-secondary)",
-        fontSize: "0.85rem",
+    cardHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
         marginBottom: "1.5rem",
+    },
+    dateLabel: {
+        fontSize: "0.8rem",
+        color: "var(--text-secondary)",
+        padding: "4px 10px",
+        background: "var(--bg-secondary)",
+        borderRadius: "20px",
+        border: "1px solid var(--border-color)",
     },
     table: {
         width: "100%",
         borderCollapse: "collapse",
         background: "var(--bg-card)",
-        borderRadius: "8px",
-        overflow: "hidden",
     },
     th: {
-        padding: "1rem",
+        padding: "1.2rem 1rem",
         textAlign: "left",
         color: "var(--text-secondary)",
-        borderBottom: "1px solid var(--border-color)",
+        borderBottom: "2px solid var(--border-color)",
+        fontSize: "0.85rem",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
     },
     td: {
-        padding: "1rem",
+        padding: "1.2rem 1rem",
         borderBottom: "1px solid var(--border-color)",
         color: "var(--text-primary)",
+        fontSize: "0.95rem",
     },
     tr: {
         transition: "background 0.2s",
         "&:hover": {
-            background: "rgba(255,255,255,0.02)",
+            backgroundColor: "rgba(255,255,255,0.02)",
         },
     },
 };

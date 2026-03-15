@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [shift, setShift] = useState("all");
   const [machineType, setMachineType] = useState("all");
+  const [daysRange, setDaysRange] = useState(1);
 
   const parsedDate = new Date(date);
   const isValidDate = !isNaN(parsedDate.getTime());
@@ -62,9 +63,9 @@ export default function AdminDashboard() {
       let passShift = true;
       if (shift !== "all") {
         const h = new Date(startTime).getHours();
-        if (shift === "shift1") passShift = (h >= 21 || h < 5);
-        else if (shift === "shift2") passShift = (h >= 5 && h < 13);
-        else if (shift === "shift3") passShift = (h >= 13 && h < 21);
+        if (shift === "shift1") passShift = (h >= 22 || h < 6);
+        else if (shift === "shift2") passShift = (h >= 6 && h < 14);
+        else if (shift === "shift3") passShift = (h >= 14 && h < 22);
       }
 
       // 2. Machine Type Filter
@@ -135,6 +136,17 @@ export default function AdminDashboard() {
             <option value="FH">{t("filters.flatHead")}</option>
           </select>
         </div>
+
+        {active === "stats" && (
+          <div style={styles.filterGroup}>
+            <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}><ShiftIcon size={18} /> Range: </strong>
+            <select value={daysRange} onChange={(e) => setDaysRange(parseInt(e.target.value))} style={styles.input}>
+              <option value={1}>1 Day</option>
+              <option value={2}>2 Days</option>
+              <option value={3}>3 Days</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {isLoading && <p style={{ padding: "2rem", textAlign: "center" }}>{t("status.loading")}</p>}
@@ -147,7 +159,7 @@ export default function AdminDashboard() {
       )}
 
       {!isLoading && !isError && active === "stats" && (
-        <Statistics sessions={filteredMonthlySessions} logs={filteredMonthlyLogs} shift={shift} />
+        <Statistics sessions={filteredMonthlySessions} logs={filteredMonthlyLogs} shift={shift} date={date} daysRange={daysRange} />
       )}
 
       {active === "management" && <Management />}

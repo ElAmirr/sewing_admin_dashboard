@@ -102,7 +102,11 @@
         "delayBar": "RETARD %",
         "lowActivityBar": "NON CONFORMITÉ %",
         "supActivityBar": "Activité Superviseur %",
-        "credibilityBar": "Crédibilité Opérateur %"
+        "credibilityBar": "Crédibilité Opérateur %",
+        "monthlyWorkTrends": "Tendances de Travail Mensuelles",
+        "monthlyWorkTrendsDescription": "Évolution des taux OK, Retard et Basse Activité sur le mois",
+        "monthlySupervisorTrends": "Tendances Superviseur Mensuelles",
+        "monthlySupervisorTrendsDescription": "Suivi de l'activité superviseur et du score de crédibilité"
     },
     "management": {
         "title": "Gestion du Système",
