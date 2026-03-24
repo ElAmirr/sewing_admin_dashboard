@@ -36,6 +36,28 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
             return "unknown";
         };
 
+        const countOverlapWindows = (startStr, endStr) => {
+            if (!startStr) return 0;
+            const s = new Date(startStr);
+            const e = endStr ? new Date(endStr) : new Date();
+            if (e <= s) return 0;
+            let count = 0;
+            let current = new Date(s);
+            current.setMinutes(0, 0, 0);
+            if (current.getHours() % 2 !== 0) {
+                current.setHours(current.getHours() - 1);
+            }
+            while (current < e) {
+                const wS = current.getTime();
+                const wE = wS + 2 * 60 * 60 * 1000;
+                if (Math.max(wS, s.getTime()) < Math.min(wE, e.getTime())) {
+                    count++;
+                }
+                current = new Date(wE);
+            }
+            return count;
+        };
+
         const slotMap = {};
 
         logs.forEach(log => {
@@ -57,7 +79,7 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
                     label: `${format(parseISO(dateKey), "MMM d")} ${SHIFT_LABEL[shiftKey] || ""}`,
                     shiftFull: SHIFT_FULL[shiftKey] || shiftKey,
                     ok: 0, delay: 0, none: 0, virtual: 0,
-                    reviewed: 0, confirmed: 0, totalSessionMs: 0,
+                    reviewed: 0, confirmed: 0,
                     activeOperators: new Set(),
                 };
             }
@@ -80,26 +102,24 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
                 const key = `${dateKey}_${shiftKey}`;
                 if (!slotMap[key]) return;
 
-                const s = new Date(session.started_at).getTime();
-                const e = session.ended_at ? new Date(session.ended_at).getTime() : new Date().getTime();
-                if (e > s) slotMap[key].totalSessionMs += e - s;
+                slotMap[key].virtual += countOverlapWindows(session.started_at, session.ended_at);
             });
         }
 
         Object.values(slotMap).forEach(slot => {
-            slot.virtual = Math.round(slot.totalSessionMs / (1000 * 60 * 60 * 2));
             slot.none = Math.max(0, slot.virtual - slot.ok - slot.delay);
         });
 
         return Object.values(slotMap)
             .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift))
             .map(slot => {
-                const total = slot.virtual || (slot.ok + slot.delay) || 1;
+                const total = slot.ok + slot.delay + slot.none || 1;
                 return {
                     ...slot,
                     totalChanges: slot.ok + slot.delay,
                     okRate: parseFloat(((slot.ok / total) * 100).toFixed(1)),
                     delayRate: parseFloat(((slot.delay / total) * 100).toFixed(1)),
+                    totalComplianceRate: parseFloat((((slot.ok + slot.delay) / total) * 100).toFixed(1)),
                     noneRate: parseFloat(((slot.none / total) * 100).toFixed(1)),
                     supervisorActivity: parseFloat(((slot.reviewed / (slot.ok + slot.delay || 1)) * 100).toFixed(1)),
                     credibilityScore: slot.reviewed > 0
@@ -219,7 +239,7 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
                     <div style={{ display: "flex", flexDirection: "column" }}>
                         <h3>{t("statistics.monthlyWorkTrends")}</h3>
                         <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
-                            {t("statistics.monthlyWorkTrendsDescription")}
+                            {t("statistics.monthlyWorkTrendsDescriptionMerged")}
                         </p>
                     </div>
                     <span style={styles.dateLabel}>
@@ -230,9 +250,9 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={fullData}>
                             <defs>
-                                <linearGradient id="colorOk" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#4caf50" stopOpacity={0.2} />
-                                    <stop offset="95%" stopColor="#4caf50" stopOpacity={0} />
+                                <linearGradient id="colorCompliance" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
@@ -244,42 +264,9 @@ export default function Statistics({ logs, sessions, shift, date, daysRange = 1 
                             />
                             <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }} />
 
-                            <Area type="monotone" dataKey="okRate" name={t("statistics.okBar")} stroke="#4caf50" fillOpacity={1} fill="url(#colorOk)" strokeWidth={3} />
-                            <Line type="monotone" dataKey="delayRate" name={t("statistics.delayBar")} stroke="#ff9800" strokeWidth={2} dot={false} strokeDasharray="3 3" />
+                            <Area type="monotone" dataKey="totalComplianceRate" name={t("kpi.totalCompliance")} stroke="#3b82f6" fillOpacity={1} fill="url(#colorCompliance)" strokeWidth={3} />
                             <Line type="monotone" dataKey="noneRate" name={t("statistics.lowActivityBar")} stroke="#f44336" strokeWidth={2} dot={false} strokeDasharray="5 5" />
                         </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-
-            {/* Chart 4: Full-Width Monthly Supervisor Trends */}
-            <div style={{ ...styles.chartCard, marginTop: "1.5rem" }}>
-                <div style={styles.cardHeader}>
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                        <h3>{t("statistics.monthlySupervisorTrends")}</h3>
-                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
-                            {t("statistics.monthlySupervisorTrendsDescription")}
-                        </p>
-                    </div>
-                    <span style={styles.dateLabel}>
-                        {(fullData[0]?.date || date) ? format(parseISO(fullData[0]?.date || date), "MMM yyyy") : "---"}
-                    </span>
-                </div>
-                <div style={{ height: 350 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={fullData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                            <XAxis dataKey="label" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                            <YAxis unit="%" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
-                            <Tooltip
-                                contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "12px" }}
-                                formatter={(value, name) => [`${value}%`, name]}
-                            />
-                            <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }} />
-
-                            <Line type="monotone" dataKey="supervisorActivity" name={t("statistics.supActivityBar")} stroke="#2196f3" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                            <Line type="monotone" dataKey="credibilityScore" name={t("statistics.credibilityBar")} stroke="#9c27b0" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                        </LineChart>
                     </ResponsiveContainer>
                 </div>
             </div>

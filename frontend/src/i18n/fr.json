@@ -105,6 +105,7 @@
         "credibilityBar": "Crédibilité Opérateur %",
         "monthlyWorkTrends": "Tendances de Travail Mensuelles",
         "monthlyWorkTrendsDescription": "Évolution des taux OK, Retard et Basse Activité sur le mois",
+        "monthlyWorkTrendsDescriptionMerged": "Suivi de la Conformité Totale (PONCTUEL + RETARD) par rapport à la Non-Conformité (BASSE ACTIVITÉ).",
         "monthlySupervisorTrends": "Tendances Superviseur Mensuelles",
         "monthlySupervisorTrendsDescription": "Suivi de l'activité superviseur et du score de crédibilité"
     },

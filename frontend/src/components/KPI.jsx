@@ -19,12 +19,35 @@ export default function KPI({ logs, sessions }) {
         let noneCount = 0;
         let virtualTotal = 0;
 
+        const countOverlapWindows = (startStr, endStr) => {
+            if (!startStr) return 0;
+            const s = new Date(startStr);
+            const e = endStr ? new Date(endStr) : new Date();
+            if (e <= s) return 0;
+
+            let count = 0;
+            // Generate even hour boundaries for the relevant period
+            let current = new Date(s);
+            current.setMinutes(0, 0, 0);
+            if (current.getHours() % 2 !== 0) {
+                current.setHours(current.getHours() - 1);
+            }
+
+            while (current < e) {
+                const wS = current.getTime();
+                const wE = wS + 2 * 60 * 60 * 1000;
+                // Overlap check: max(start) < min(end)
+                if (Math.max(wS, s.getTime()) < Math.min(wE, e.getTime())) {
+                    count++;
+                }
+                current = new Date(wE);
+            }
+            return count;
+        };
+
         const getShift = (dateStr) => {
+            if (!dateStr) return "unknown";
             const h = new Date(dateStr).getHours();
-            // New Architecture Shift Mapping:
-            // Shift 1: 22:00 - 06:00
-            // Shift 2: 06:00 - 14:00
-            // Shift 3: 14:00 - 22:00
             if (h >= 22 || h < 6) return "shift1";
             if (h >= 6 && h < 14) return "shift2";
             if (h >= 14 && h < 22) return "shift3";
@@ -71,20 +94,9 @@ export default function KPI({ logs, sessions }) {
         }
 
         if (sessions && sessions.length > 0) {
-            let totalExpectedChanges = 0;
-            const now = new Date().getTime();
-
             sessions.forEach(s => {
-                if (!s.started_at) return;
-                const start = new Date(s.started_at).getTime();
-                const end = s.ended_at ? new Date(s.ended_at).getTime() : now;
-
-                const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60));
-                // 1 change per 2 hours. Rounding to 2 decimal places to be precise 
-                // but we can round the final total at the end.
-                totalExpectedChanges += durationHours / 2;
+                virtualTotal += countOverlapWindows(s.started_at, s.ended_at);
             });
-            virtualTotal = Math.round(totalExpectedChanges);
         } else {
             virtualTotal = okCount + delayCount;
         }
@@ -166,11 +178,7 @@ export default function KPI({ logs, sessions }) {
                 const now = new Date().getTime();
 
                 opSessions.forEach(s => {
-                    if (!s.started_at) return;
-                    const start = new Date(s.started_at).getTime();
-                    const end = s.ended_at ? new Date(s.ended_at).getTime() : now;
-                    const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60));
-                    totalExpected += durationHours / 2;
+                    totalExpected += countOverlapWindows(s.started_at, s.ended_at);
                 });
                 const virtual = Math.round(totalExpected);
                 const actual = op.ok + op.delay;

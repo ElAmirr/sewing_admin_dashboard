@@ -105,6 +105,7 @@
         "credibilityBar": "Credibility %",
         "monthlyWorkTrends": "Monthly Work Trends",
         "monthlyWorkTrendsDescription": "Trend of OK, Delay, and Low Activity rates across the month",
+        "monthlyWorkTrendsDescriptionMerged": "Tracking Total Compliance (OK + Delay) against Low Activity (NONE) gaps.",
         "monthlySupervisorTrends": "Monthly Supervisor Trends",
         "monthlySupervisorTrendsDescription": "Tracking Supervisor Activity and Credibility Score trends"
     },
